@@ -9,7 +9,7 @@ This is a simple ping application that displays real-time ping times to a specif
 To run the application, simply execute the WebView script:
 
 ```
-deno run --allow-all --reload https://raw.githubusercontent.com/sigmaSd/ping1/master/webview/main.ts
+deno run --allow-all https://raw.githubusercontent.com/sigmaSd/ping1/master/src/webview/main.ts
 ```
 
 This will start the backend server and open a desktop window displaying the ping times graph.
