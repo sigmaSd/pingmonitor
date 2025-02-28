@@ -5,7 +5,6 @@ export function patchFetch() {
   globalThis.fetch = async function (input, init) {
     const url = input instanceof Request ? input.url : String(input);
 
-    console.log("called with", url);
     // Check if the URL is from import.meta.resolve
     if (url.startsWith("file://")) {
       try {
