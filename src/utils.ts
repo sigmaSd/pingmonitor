@@ -1,3 +1,5 @@
+// for deno compile
+// https://github.com/denoland/deno/issues/28129
 export function patchFetch() {
   const originalFetch = globalThis.fetch;
   globalThis.fetch = async function (input, init) {
