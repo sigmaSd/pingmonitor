@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ping Graph</title>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            margin: 0;
+            padding: 20px;
+            transition: background-color 0.3s, color 0.3s;
+        }
+
+        .chart-container {
+            width: 70%;
+            max-width: 1000px;
+            margin: 10px auto;
+            padding: 10px;
+            border-radius: 10px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+            transition: background-color 0.3s, box-shadow 0.3s;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+        }
+
+        h1 {
+            margin: 0;
+        }
+
+        .stat-info {
+            display: flex;
+            justify-content: space-around;
+            margin-top: 20px;
+            font-size: 1.1em;
+        }
+
+        .stat-box {
+            text-align: center;
+            padding: 10px;
+            border-radius: 5px;
+            min-width: 100px;
+        }
+
+        /* Theme toggle */
+        .theme-toggle {
+            cursor: pointer;
+            font-size: 1.5rem;
+            background: none;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: background-color 0.3s;
+            outline: none;
+        }
+
+        /* Light mode (default) */
+        :root {
+            --bg-color: #f5f5f7;
+            --chart-bg: #ffffff;
+            --text-color: #333333;
+            --grid-color: rgba(0, 0, 0, 0.1);
+            --chart-border: rgba(75, 192, 192, 1);
+            --chart-fill: rgba(75, 192, 192, 0.2);
+            --toggle-bg: #e0e0e0;
+        }
+
+        /* Dark mode */
+        :root.dark-theme {
+            --bg-color: #121212;
+            --chart-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --grid-color: rgba(255, 255, 255, 0.1);
+            --chart-border: rgba(75, 192, 255, 1);
+            --chart-fill: rgba(75, 192, 255, 0.2);
+            --toggle-bg: #333333;
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+        }
+
+        .chart-container {
+            background-color: var(--chart-bg);
+        }
+
+        .theme-toggle {
+            background-color: var(--toggle-bg);
+            color: var(--text-color);
+        }
+
+        .theme-toggle:hover {
+            background-color: var(--chart-border);
+            color: white;
+        }
+    </style>
+</head>
+<body>
+    <div class="chart-container">
+        <div class="header">
+            <h1>Network Ping Monitor</h1>
+            <button class="theme-toggle" id="themeToggle" title="Toggle dark/light mode">☀️</button>
+        </div>
+        <canvas id="pingChart"></canvas>
+        <div class="stat-info">
+            <div class="stat-box">
+                <div>Current: <span id="currentPing">-- ms</span></div>
+            </div>
+            <div class="stat-box">
+                <div>Average: <span id="avgPing">-- ms</span></div>
+            </div>
+            <div class="stat-box">
+                <div>Max: <span id="maxPing">-- ms</span></div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const ws = new WebSocket('ws://' + window.location.host);
+        const ctx = document.getElementById('pingChart').getContext('2d');
+        const themeToggle = document.getElementById('themeToggle');
+        let pingValues = [];
+        const MAX_DATA_POINTS = 60;
+        const REMOVE_CHUNK_SIZE = 10; // Remove 10 points at once when needed
+
+        // Check system preference for dark mode
+        let darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+        // Check local storage for saved preference
+        const savedTheme = localStorage.getItem('theme');
+        if (savedTheme) {
+            darkMode = savedTheme === 'dark';
+            document.documentElement.classList.toggle('dark-theme', darkMode);
+            themeToggle.textContent = darkMode ? '🌙' : '☀️';
+        } else {
+            // If no saved preference, use system preference
+            document.documentElement.classList.toggle('dark-theme', darkMode);
+            themeToggle.textContent = darkMode ? '🌙' : '☀️';
+        }
+
+        // Theme toggle functionality
+        themeToggle.addEventListener('click', () => {
+            darkMode = !darkMode;
+            document.documentElement.classList.toggle('dark-theme', darkMode);
+            themeToggle.textContent = darkMode ? '🌙' : '☀️';
+            localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+            updateChartTheme();
+        });
+
+        // Set up Chart.js with theme-aware colors
+        const chart = new Chart(ctx, {
+            type: 'line',
+            data: {
+                labels: [],
+                datasets: [{
+                    label: 'Ping (ms)',
+                    data: [],
+                    borderColor: darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)',
+                    backgroundColor: darkMode ? 'rgba(75, 192, 255, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                    borderWidth: 2,
+                    fill: true,
+                    tension: 0.2
+                }]
+            },
+            options: {
+                animation: {
+                    duration: 600, // Good balance between smooth and responsive
+                    easing: 'easeOutQuad'
+                },
+                responsive: true,
+                maintainAspectRatio: true,
+                interaction: {
+                    intersect: false,
+                    mode: 'index',
+                },
+                scales: {
+                    y: {
+                        beginAtZero: false,
+                        grid: {
+                            color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                        },
+                        ticks: {
+                            color: darkMode ? '#e0e0e0' : '#333333',
+                        }
+                    },
+                    x: {
+                        grid: {
+                            color: darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)',
+                        },
+                        ticks: {
+                            color: darkMode ? '#e0e0e0' : '#333333',
+                            maxRotation: 0,
+                            autoSkip: true,
+                            maxTicksLimit: 10
+                        }
+                    }
+                },
+                plugins: {
+                    legend: {
+                        labels: {
+                            color: darkMode ? '#e0e0e0' : '#333333',
+                            font: {
+                                size: 14
+                            }
+                        }
+                    },
+                    tooltip: {
+                        backgroundColor: darkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)',
+                        titleColor: darkMode ? '#ffffff' : '#000000',
+                        bodyColor: darkMode ? '#e0e0e0' : '#333333',
+                        borderColor: darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)',
+                        borderWidth: 1
+                    }
+                }
+            }
+        });
+
+        // Listen for system theme changes
+        if (window.matchMedia) {
+            window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
+                // Only apply system theme if no manual preference is set
+                if (!localStorage.getItem('theme')) {
+                    darkMode = e.matches;
+                    document.documentElement.classList.toggle('dark-theme', darkMode);
+                    themeToggle.textContent = darkMode ? '🌙' : '☀️';
+                    updateChartTheme();
+                }
+            });
+        }
+
+        function updateChartTheme() {
+            chart.data.datasets[0].borderColor = darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)';
+            chart.data.datasets[0].backgroundColor = darkMode ? 'rgba(75, 192, 255, 0.2)' : 'rgba(75, 192, 192, 0.2)';
+            chart.options.scales.y.grid.color = darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            chart.options.scales.x.grid.color = darkMode ? 'rgba(255, 255, 255, 0.1)' : 'rgba(0, 0, 0, 0.1)';
+            chart.options.scales.y.ticks.color = darkMode ? '#e0e0e0' : '#333333';
+            chart.options.scales.x.ticks.color = darkMode ? '#e0e0e0' : '#333333';
+            chart.options.plugins.legend.labels.color = darkMode ? '#e0e0e0' : '#333333';
+            chart.options.plugins.tooltip.backgroundColor = darkMode ? 'rgba(30, 30, 30, 0.8)' : 'rgba(255, 255, 255, 0.8)';
+            chart.options.plugins.tooltip.titleColor = darkMode ? '#ffffff' : '#000000';
+            chart.options.plugins.tooltip.bodyColor = darkMode ? '#e0e0e0' : '#333333';
+            chart.options.plugins.tooltip.borderColor = darkMode ? 'rgba(255, 255, 255, 0.2)' : 'rgba(0, 0, 0, 0.2)';
+            chart.update();
+        }
+
+        function updateStats() {
+            if (pingValues.length > 0) {
+                const currentPing = pingValues[pingValues.length - 1];
+                const avgPing = (pingValues.reduce((a, b) => a + b, 0) / pingValues.length).toFixed(1);
+                const maxPing = Math.max(...pingValues);
+
+                document.getElementById('currentPing').textContent = `${currentPing} ms`;
+                document.getElementById('avgPing').textContent = `${avgPing} ms`;
+                document.getElementById('maxPing').textContent = `${maxPing} ms`;
+            }
+        }
+
+        // Handle WebSocket messages with improved data management
+        ws.onmessage = function(event) {
+            try {
+                const data = JSON.parse(event.data);
+                const now = new Date();
+                const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
+
+                // Add new data point
+                chart.data.labels.push(timeString);
+                chart.data.datasets[0].data.push(data.ping);
+                pingValues.push(data.ping);
+
+                // If we exceed MAX_DATA_POINTS, remove a chunk of oldest points
+                if (chart.data.labels.length > MAX_DATA_POINTS) {
+                    // Instead of removing one point at a time, remove REMOVE_CHUNK_SIZE at once
+                    // This creates a smoother visual experience
+                    chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
+                    chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
+                    pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
+                }
+
+                // Dynamically adjust y-axis with some padding
+                const values = chart.data.datasets[0].data;
+                if (values.length > 0) {
+                    const minValue = Math.min(...values);
+                    const maxValue = Math.max(...values);
+                    const padding = Math.max(5, maxValue * 0.1); // 10% padding or at least 5ms
+
+                    const min = Math.max(0, minValue - padding);
+                    const max = maxValue + padding;
+
+                    // Only update axes if values have changed significantly
+                    if (Math.abs(chart.options.scales.y.min - min) > 5 ||
+                        Math.abs(chart.options.scales.y.max - max) > 5) {
+                        chart.options.scales.y.min = min;
+                        chart.options.scales.y.max = max;
+                    }
+                }
+
+                // Update statistics
+                updateStats();
+
+                // Update chart with smooth animation
+                chart.update();
+
+            } catch (e) {
+                console.error('Error processing ping data:', e);
+            }
+        };
+
+        // Handle WebSocket errors and connection issues
+        ws.onclose = function(event) {
+            console.log('WebSocket connection closed, reconnecting...');
+            setTimeout(() => {
+                location.reload(); // Simple reconnection strategy
+            }, 3000);
+        };
+
+        ws.onerror = function(error) {
+            console.error('WebSocket error:', error);
+        };
+    </script>
+</body>
+</html>
