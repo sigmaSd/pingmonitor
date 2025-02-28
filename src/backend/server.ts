@@ -28,7 +28,7 @@ if (import.meta.main) {
     port: 0,
     onListen: ({ port }) => {
       console.log(`Server running on http://localhost:${port}`);
-      self.postMessage({ port });
+      if (self.postMessage) self.postMessage({ port });
     },
   }, async (req) => {
     const path = new URL(req.url).pathname;

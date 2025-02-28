@@ -134,27 +134,60 @@
         const MAX_DATA_POINTS = 60;
         const REMOVE_CHUNK_SIZE = 10; // Remove 10 points at once when needed
 
-        // Check system preference for dark mode
+        // Check if running in Webview context
+        const isWebview = typeof window.getInitialTheme === 'function';
         let darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // Check local storage for saved preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            darkMode = savedTheme === 'dark';
+        // Function to initialize theme
+        async function initializeTheme() {
+            // If in Webview, get theme from the app storage
+            if (isWebview) {
+                try {
+                    const savedTheme = await window.getInitialTheme();
+                    if (savedTheme) {
+                        darkMode = savedTheme === 'dark';
+                    }
+                } catch (e) {
+                    console.error('Error getting theme from Webview:', e);
+                }
+            } else {
+                // Browser mode - use localStorage
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    darkMode = savedTheme === 'dark';
+                }
+            }
+
+            // Apply theme
             document.documentElement.classList.toggle('dark-theme', darkMode);
             themeToggle.textContent = darkMode ? '🌙' : '☀️';
-        } else {
-            // If no saved preference, use system preference
-            document.documentElement.classList.toggle('dark-theme', darkMode);
-            themeToggle.textContent = darkMode ? '🌙' : '☀️';
+            updateChartTheme();
         }
+
+        // Call theme initialization
+        initializeTheme();
 
         // Theme toggle functionality
         themeToggle.addEventListener('click', () => {
             darkMode = !darkMode;
+            const themeValue = darkMode ? 'dark' : 'light';
+
             document.documentElement.classList.toggle('dark-theme', darkMode);
             themeToggle.textContent = darkMode ? '🌙' : '☀️';
-            localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+
+            // Save theme preference
+            if (isWebview) {
+                // Save in Webview's backend
+                try {
+                    window.saveTheme(themeValue);
+                } catch (e) {
+                    console.error('Error saving theme in Webview:', e);
+                }
+            } else {
+                // Save in browser's localStorage
+                localStorage.setItem('theme', themeValue);
+            }
+
             updateChartTheme();
         });
 
@@ -226,11 +259,12 @@
             }
         });
 
-        // Listen for system theme changes
-        if (window.matchMedia) {
+        // Listen for system theme changes (browser-only)
+        if (!isWebview && window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
                 // Only apply system theme if no manual preference is set
-                if (!localStorage.getItem('theme')) {
+                const hasStoredPreference = localStorage.getItem('theme') !== null;
+                if (!hasStoredPreference) {
                     darkMode = e.matches;
                     document.documentElement.classList.toggle('dark-theme', darkMode);
                     themeToggle.textContent = darkMode ? '🌙' : '☀️';
@@ -280,8 +314,6 @@
 
                 // If we exceed MAX_DATA_POINTS, remove a chunk of oldest points
                 if (chart.data.labels.length > MAX_DATA_POINTS) {
-                    // Instead of removing one point at a time, remove REMOVE_CHUNK_SIZE at once
-                    // This creates a smoother visual experience
                     chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
                     chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
                     pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
