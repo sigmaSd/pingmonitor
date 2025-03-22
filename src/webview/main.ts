@@ -1,5 +1,5 @@
 #!/usr/bin/env -S deno run --allow-all
-import { Webview } from "jsr:@webview/webview@0.9.0";
+import { SizeHint, Webview } from "jsr:@webview/webview@0.9.0";
 import "jsr:@sigma/deno-compile-extra@0.10.0/fetchPatch";
 import "jsr:@sigma/deno-compile-extra@0.10.0/localStoragePolyfill";
 
@@ -20,6 +20,7 @@ worker.onmessage = (event) => {
   const port = event.data.port;
   const webview = new Webview(true);
   webview.title = "Ping";
+  webview.size = { width: 800, height: 600, hint: SizeHint.NONE };
 
   // Set up binding to save theme
   webview.bind("saveTheme", (theme: string) => {
