@@ -203,16 +203,17 @@
                 datasets: [{
                     label: 'Ping (ms)',
                     data: [],
-                    borderColor: darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)',
-                    backgroundColor: darkMode ? 'rgba(75, 192, 255, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)', // Default color
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2,
                     fill: true,
-                    tension: 0.2
+                    tension: 0.2,
+                    pointRadius: 3, // Show points
                 }]
             },
             options: {
                 animation: {
-                    duration: 600, // Good balance between smooth and responsive
+                    duration: 600,
                     easing: 'easeOutQuad'
                 },
                 responsive: true,
@@ -304,48 +305,29 @@
             }
         }
 
-        // Handle WebSocket messages with improved data management
+        function addDataPoint(timeString, pingValue) {
+            chart.data.labels.push(timeString);
+            chart.data.datasets[0].data.push(pingValue);
+            pingValues.push(pingValue);
+
+            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
+                chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
+                pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
+            }
+        }
+
+        // WebSocket message handling
         ws.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
                 const now = new Date();
                 const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
-                // Add new data point
-                chart.data.labels.push(timeString);
-                chart.data.datasets[0].data.push(data.ping);
-                pingValues.push(data.ping);
-
-                // If we exceed MAX_DATA_POINTS, remove a chunk of oldest points
-                if (chart.data.labels.length > MAX_DATA_POINTS) {
-                    chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
-                    chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
-                    pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
-                }
-
-                // Dynamically adjust y-axis with some padding
-                const values = chart.data.datasets[0].data;
-                if (values.length > 0) {
-                    const minValue = Math.min(...values);
-                    const maxValue = Math.max(...values);
-                    const padding = Math.max(5, maxValue * 0.1); // 10% padding or at least 5ms
-
-                    const min = Math.max(0, minValue - padding);
-                    const max = maxValue + padding;
-
-                    // Only update axes if values have changed significantly
-                    if (Math.abs(chart.options.scales.y.min - min) > 5 ||
-                        Math.abs(chart.options.scales.y.max - max) > 5) {
-                        chart.options.scales.y.min = min;
-                        chart.options.scales.y.max = max;
-                    }
-                }
-
-                // Update statistics
+                addDataPoint(timeString, data.ping);
                 updateStats();
                 lastReceivedTime = Date.now();
-
-                // Update chart with smooth animation
+                chart.data.datasets[0].borderColor =  darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)';  // Reset to default color
                 chart.update();
 
             } catch (e) {
@@ -353,25 +335,35 @@
             }
         };
 
-        // Handle WebSocket errors and connection issues
         ws.onclose = function(event) {
             console.log('WebSocket connection closed, reconnecting...');
-            setTimeout(() => {
-                location.reload(); // Simple reconnection strategy
-            }, 3000);
+            chart.data.datasets[0].borderColor = 'red';
         };
 
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
+            chart.data.datasets[0].borderColor = 'red';
+            chart.update() // immediate
         };
 
         setInterval(() => {
-            const currentTime = Date.now();
-            const timeSinceLastPing = currentTime - lastReceivedTime;
-            if (timeSinceLastPing > PING_INTERVAL) {
-                console.warn('No ping received in the last 1 seconds');
+            if (ws.readyState === WebSocket.OPEN) {
+                const currentTime = Date.now();
+                const timeSinceLastPing = currentTime - lastReceivedTime;
+
+                if (timeSinceLastPing >= PING_INTERVAL) {
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    addDataPoint(timeString, 0);
+
+                    // Change line color to red if disconnected
+                    chart.data.datasets[0].borderColor = 'red';
+
+                    chart.update();
+                    lastReceivedTime = currentTime; // Treat this as a "received" point
+                }
             }
-        }, 1000);
+        }, PING_INTERVAL);
     </script>
 </body>
 </html>
