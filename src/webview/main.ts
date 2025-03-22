@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-all
 import { Webview } from "jsr:@webview/webview@0.9.0";
-import { patchFetch } from "../utils.ts";
-patchFetch();
+import "jsr:@sigma/deno-compile-extra@0.10.0/fetchPatch";
+import "jsr:@sigma/deno-compile-extra@0.10.0/localStoragePolyfill";
 
 // Load the theme preference from localStorage
 let themePreference: string | null = null;
