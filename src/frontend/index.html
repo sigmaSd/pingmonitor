@@ -134,6 +134,10 @@
         const MAX_DATA_POINTS = 60;
         const REMOVE_CHUNK_SIZE = 10; // Remove 10 points at once when needed
 
+        let lastReceivedTime = Date.now();
+        const PING_INTERVAL = 1000;
+
+
         // Check if running in Webview context
         const isWebview = typeof window.getInitialTheme === 'function';
         let darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -339,6 +343,7 @@
 
                 // Update statistics
                 updateStats();
+                lastReceivedTime = Date.now();
 
                 // Update chart with smooth animation
                 chart.update();
@@ -359,6 +364,14 @@
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
         };
+
+        setInterval(() => {
+            const currentTime = Date.now();
+            const timeSinceLastPing = currentTime - lastReceivedTime;
+            if (timeSinceLastPing > PING_INTERVAL) {
+                console.warn('No ping received in the last 1 seconds');
+            }
+        }, 1000);
     </script>
 </body>
 </html>
