@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read --allow-run
+/// <reference lib="deno.worker" />
 
-import { patchFetch } from "../utils.ts";
-patchFetch();
+import "jsr:@sigma/deno-compile-extra@0.10.0/fetchPatch";
 
 async function* pingGenerator(pingHost = "8.8.8.8") {
   const process = new Deno.Command("ping", {
@@ -23,7 +23,13 @@ async function* pingGenerator(pingHost = "8.8.8.8") {
 }
 
 if (import.meta.main) {
-  Deno.serve({ port: 3000 }, async (req) => {
+  Deno.serve({
+    port: 0,
+    onListen: ({ port }) => {
+      console.log(`Server running on http://localhost:${port}`);
+      if (self.postMessage) self.postMessage({ port });
+    },
+  }, async (req) => {
     const path = new URL(req.url).pathname;
 
     if (req.headers.get("upgrade") === "websocket") {
@@ -73,6 +79,4 @@ if (import.meta.main) {
 
     return new Response("Not Found", { status: 404 });
   });
-
-  console.log("Server running on http://localhost:3000");
 }

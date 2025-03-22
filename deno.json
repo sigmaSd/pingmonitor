@@ -1,0 +1,11 @@
+{
+  "tasks": {
+    "compile": "deno compile --no-check --output pingChart -A --include src/backend/server.ts --include src/frontend/index.html src/webview/main.ts",
+    "install": {
+      "command": "deno -A jsr:@sigmasd/install-app@0.5.0 install pingChart",
+      "dependencies": [
+        "compile"
+      ]
+    }
+  }
+}

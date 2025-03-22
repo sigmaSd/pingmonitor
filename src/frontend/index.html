@@ -134,27 +134,64 @@
         const MAX_DATA_POINTS = 60;
         const REMOVE_CHUNK_SIZE = 10; // Remove 10 points at once when needed
 
-        // Check system preference for dark mode
+        let lastReceivedTime = Date.now();
+        const PING_INTERVAL = 1000;
+
+
+        // Check if running in Webview context
+        const isWebview = typeof window.getInitialTheme === 'function';
         let darkMode = window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches;
 
-        // Check local storage for saved preference
-        const savedTheme = localStorage.getItem('theme');
-        if (savedTheme) {
-            darkMode = savedTheme === 'dark';
+        // Function to initialize theme
+        async function initializeTheme() {
+            // If in Webview, get theme from the app storage
+            if (isWebview) {
+                try {
+                    const savedTheme = await window.getInitialTheme();
+                    if (savedTheme) {
+                        darkMode = savedTheme === 'dark';
+                    }
+                } catch (e) {
+                    console.error('Error getting theme from Webview:', e);
+                }
+            } else {
+                // Browser mode - use localStorage
+                const savedTheme = localStorage.getItem('theme');
+                if (savedTheme) {
+                    darkMode = savedTheme === 'dark';
+                }
+            }
+
+            // Apply theme
             document.documentElement.classList.toggle('dark-theme', darkMode);
             themeToggle.textContent = darkMode ? '🌙' : '☀️';
-        } else {
-            // If no saved preference, use system preference
-            document.documentElement.classList.toggle('dark-theme', darkMode);
-            themeToggle.textContent = darkMode ? '🌙' : '☀️';
+            updateChartTheme();
         }
+
+        // Call theme initialization
+        initializeTheme();
 
         // Theme toggle functionality
         themeToggle.addEventListener('click', () => {
             darkMode = !darkMode;
+            const themeValue = darkMode ? 'dark' : 'light';
+
             document.documentElement.classList.toggle('dark-theme', darkMode);
             themeToggle.textContent = darkMode ? '🌙' : '☀️';
-            localStorage.setItem('theme', darkMode ? 'dark' : 'light');
+
+            // Save theme preference
+            if (isWebview) {
+                // Save in Webview's backend
+                try {
+                    window.saveTheme(themeValue);
+                } catch (e) {
+                    console.error('Error saving theme in Webview:', e);
+                }
+            } else {
+                // Save in browser's localStorage
+                localStorage.setItem('theme', themeValue);
+            }
+
             updateChartTheme();
         });
 
@@ -166,16 +203,17 @@
                 datasets: [{
                     label: 'Ping (ms)',
                     data: [],
-                    borderColor: darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)',
-                    backgroundColor: darkMode ? 'rgba(75, 192, 255, 0.2)' : 'rgba(75, 192, 192, 0.2)',
+                    borderColor: 'rgba(75, 192, 192, 1)', // Default color
+                    backgroundColor: 'rgba(75, 192, 192, 0.2)',
                     borderWidth: 2,
                     fill: true,
-                    tension: 0.2
+                    tension: 0.2,
+                    pointRadius: 3, // Show points
                 }]
             },
             options: {
                 animation: {
-                    duration: 600, // Good balance between smooth and responsive
+                    duration: 600,
                     easing: 'easeOutQuad'
                 },
                 responsive: true,
@@ -226,11 +264,12 @@
             }
         });
 
-        // Listen for system theme changes
-        if (window.matchMedia) {
+        // Listen for system theme changes (browser-only)
+        if (!isWebview && window.matchMedia) {
             window.matchMedia('(prefers-color-scheme: dark)').addEventListener('change', e => {
                 // Only apply system theme if no manual preference is set
-                if (!localStorage.getItem('theme')) {
+                const hasStoredPreference = localStorage.getItem('theme') !== null;
+                if (!hasStoredPreference) {
                     darkMode = e.matches;
                     document.documentElement.classList.toggle('dark-theme', darkMode);
                     themeToggle.textContent = darkMode ? '🌙' : '☀️';
@@ -266,49 +305,29 @@
             }
         }
 
-        // Handle WebSocket messages with improved data management
+        function addDataPoint(timeString, pingValue) {
+            chart.data.labels.push(timeString);
+            chart.data.datasets[0].data.push(pingValue);
+            pingValues.push(pingValue);
+
+            if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
+                chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
+                pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
+            }
+        }
+
+        // WebSocket message handling
         ws.onmessage = function(event) {
             try {
                 const data = JSON.parse(event.data);
                 const now = new Date();
                 const timeString = now.toLocaleTimeString([], {hour: '2-digit', minute:'2-digit', second:'2-digit'});
 
-                // Add new data point
-                chart.data.labels.push(timeString);
-                chart.data.datasets[0].data.push(data.ping);
-                pingValues.push(data.ping);
-
-                // If we exceed MAX_DATA_POINTS, remove a chunk of oldest points
-                if (chart.data.labels.length > MAX_DATA_POINTS) {
-                    // Instead of removing one point at a time, remove REMOVE_CHUNK_SIZE at once
-                    // This creates a smoother visual experience
-                    chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
-                    chart.data.datasets[0].data = chart.data.datasets[0].data.slice(REMOVE_CHUNK_SIZE);
-                    pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
-                }
-
-                // Dynamically adjust y-axis with some padding
-                const values = chart.data.datasets[0].data;
-                if (values.length > 0) {
-                    const minValue = Math.min(...values);
-                    const maxValue = Math.max(...values);
-                    const padding = Math.max(5, maxValue * 0.1); // 10% padding or at least 5ms
-
-                    const min = Math.max(0, minValue - padding);
-                    const max = maxValue + padding;
-
-                    // Only update axes if values have changed significantly
-                    if (Math.abs(chart.options.scales.y.min - min) > 5 ||
-                        Math.abs(chart.options.scales.y.max - max) > 5) {
-                        chart.options.scales.y.min = min;
-                        chart.options.scales.y.max = max;
-                    }
-                }
-
-                // Update statistics
+                addDataPoint(timeString, data.ping);
                 updateStats();
-
-                // Update chart with smooth animation
+                lastReceivedTime = Date.now();
+                chart.data.datasets[0].borderColor =  darkMode ? 'rgba(75, 192, 255, 1)' : 'rgba(75, 192, 192, 1)';  // Reset to default color
                 chart.update();
 
             } catch (e) {
@@ -316,17 +335,35 @@
             }
         };
 
-        // Handle WebSocket errors and connection issues
         ws.onclose = function(event) {
             console.log('WebSocket connection closed, reconnecting...');
-            setTimeout(() => {
-                location.reload(); // Simple reconnection strategy
-            }, 3000);
+            chart.data.datasets[0].borderColor = 'red';
         };
 
         ws.onerror = function(error) {
             console.error('WebSocket error:', error);
+            chart.data.datasets[0].borderColor = 'red';
+            chart.update() // immediate
         };
+
+        setInterval(() => {
+            if (ws.readyState === WebSocket.OPEN) {
+                const currentTime = Date.now();
+                const timeSinceLastPing = currentTime - lastReceivedTime;
+
+                if (timeSinceLastPing >= PING_INTERVAL) {
+                    const now = new Date();
+                    const timeString = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                    addDataPoint(timeString, 0);
+
+                    // Change line color to red if disconnected
+                    chart.data.datasets[0].borderColor = 'red';
+
+                    chart.update();
+                    lastReceivedTime = currentTime; // Treat this as a "received" point
+                }
+            }
+        }, PING_INTERVAL);
     </script>
 </body>
 </html>

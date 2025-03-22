@@ -1,0 +1,6 @@
+{
+  "name": "Ping Chart",
+  "version": "0.1.0",
+  "description": "My awesome Deno application",
+  "icon": "icon.svg"
+}
