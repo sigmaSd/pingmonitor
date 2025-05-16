@@ -1,5 +1,6 @@
 {
   "name": "Ping Chart",
+  "id": "io.github.sigma.ping",
   "version": "0.1.0",
   "description": "My awesome Deno application",
   "icon": "io.github.sigma.ping.svg"
