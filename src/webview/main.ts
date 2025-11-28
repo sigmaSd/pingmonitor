@@ -1,8 +1,8 @@
 #!/usr/bin/env -S deno run --allow-all
-import { SizeHint, Webview } from "jsr:@webview/webview@0.9.0";
-import "jsr:@sigma/deno-compile-extra@0.10.0/fetchPatch";
-import "jsr:@sigma/deno-compile-extra@0.10.0/localStoragePolyfill";
-import { AdwApp } from "jsr:@sigmasd/adw-app";
+import { SizeHint, Webview } from "@webview/webview";
+import "@sigma/deno-compile-extra/fetchPatch";
+import "@sigma/deno-compile-extra/localStoragePolyfill";
+import { AdwApp } from "@sigmasd/adw-app";
 
 function waitForPort(worker: Worker) {
   return new Promise((resolve) => {

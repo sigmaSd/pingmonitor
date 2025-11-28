@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read --allow-run
 /// <reference lib="deno.worker" />
 
-import "jsr:@sigma/deno-compile-extra@0.10.0/fetchPatch";
+import "@sigma/deno-compile-extra/fetchPatch";
 
 async function* pingGenerator(pingHost = "8.8.8.8") {
   const process = new Deno.Command("ping", {
