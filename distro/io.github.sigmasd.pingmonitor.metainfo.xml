@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<component type="desktop-application">
+  <id>io.github.sigmasd.pingmonitor</id>
+  <name>Ping Monitor</name>
+  <summary>Monitor your ping</summary>
+  <developer_name>Bedis Nbiba</developer_name>
+
+  <metadata_license>CC0</metadata_license>
+  <project_license>MIT</project_license>
+
+  <description>
+    <p>Ping Monitor is a simple tool to monitor your ping.</p>
+    <p>Features:</p>
+    <ul>
+      <li>Display your ping in real time as a nice chart</li>
+      <li>Make it obvious when you're disconnected</li>
+    </ul>
+  </description>
+
+  <launchable type="desktop-id">io.github.sigmasd.pingmonitor.desktop</launchable>
+
+  <screenshots>
+    <screenshot type="default" style="light">
+      <caption>Ping Monitor interface</caption>
+      <image>https://raw.githubusercontent.com/sigmaSd/pingmonitor/master/distro/demo-init.png</image>
+    </screenshot>
+  </screenshots>
+
+  <url type="homepage">https://github.com/sigmaSd/pingmonitor</url>
+  <url type="bugtracker">https://github.com/sigmaSd/pingmonitor/issues</url>
+
+  <content_rating type="oars-1.1" />
+
+  <releases>
+    <release version="0.1.0" date="2025-11-28">
+      <description>
+        <p>Initial release</p>
+      </description>
+    </release>
+  </releases>
+
+  <keywords>
+    <keyword>ping</keyword>
+    <keyword>network</keyword>
+    <keyword>monitor</keyword>
+  </keywords>
+  <categories>
+    <category>Utility</category>
+    <category>Network</category>
+  </categories>
+
+  <provides>
+    <binary>pingmonitor</binary>
+  </provides>
+</component>

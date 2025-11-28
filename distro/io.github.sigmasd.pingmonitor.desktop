@@ -1,0 +1,9 @@
+[Desktop Entry]
+Name=Ping Monitor
+Comment=Monitor your ping
+Keywords=ping;network;monitor;
+TryExec=pingmonitor
+Exec=pingmonitor %F
+Icon=io.github.sigmasd.pingmonitor
+Type=Application
+Categories=Utility;
