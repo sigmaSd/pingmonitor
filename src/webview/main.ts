@@ -28,7 +28,7 @@ if (import.meta.main) {
 
   const port = await waitForPort(worker);
 
-  const app = new AdwApp({ id: "io.github.sigma.pingmonitor" });
+  const app = new AdwApp({ id: "io.github.sigmasd.pingmonitor" });
 
   app.run((window) => {
     const webview = new Webview(false, undefined, window);
