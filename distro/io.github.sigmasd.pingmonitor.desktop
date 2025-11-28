@@ -2,8 +2,7 @@
 Name=Ping Monitor
 Comment=Monitor your ping
 Keywords=ping;network;monitor;
-TryExec=pingmonitor
-Exec=pingmonitor %F
+Exec=run.sh
 Icon=io.github.sigmasd.pingmonitor
 Type=Application
 Categories=Utility;
