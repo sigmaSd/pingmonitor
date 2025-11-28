@@ -4,7 +4,7 @@ This is a simple ping application that displays real-time ping times to a
 specified host using a Deno backend, a WebSocket connection, and a WebView
 frontend with a Chart.js graph.
 
-![image](https://github.com/user-attachments/assets/c948d958-d6ad-4f09-996e-10be34fbb59c)
+![image](./distro/demo-init.png)
 
 ## Running the Application
 
