@@ -1,4 +1,4 @@
-# Ping Application
+# Ping Monitor
 
 This is a simple ping application that displays real-time ping times to a
 specified host using a Deno backend, a WebSocket connection, and a WebView
