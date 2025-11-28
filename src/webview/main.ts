@@ -32,7 +32,7 @@ if (import.meta.main) {
 
   app.run((window) => {
     const webview = new Webview(false, undefined, window);
-    webview.title = "Ping";
+    webview.title = "Ping Monitor";
     webview.size = { width: 800, height: 600, hint: SizeHint.NONE };
 
     // Set up binding to save theme

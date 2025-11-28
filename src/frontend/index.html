@@ -6,65 +6,6 @@
     <title>Ping Graph</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <style>
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 20px;
-        transition: background-color 0.3s, color 0.3s;
-      }
-
-      .chart-container {
-        width: 70%;
-        max-width: 1000px;
-        margin: 10px auto;
-        padding: 10px;
-        border-radius: 10px;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-        transition: background-color 0.3s, box-shadow 0.3s;
-      }
-
-      .header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 20px;
-      }
-
-      h1 {
-        margin: 0;
-      }
-
-      .stat-info {
-        display: flex;
-        justify-content: space-around;
-        margin-top: 20px;
-        font-size: 1.1em;
-      }
-
-      .stat-box {
-        text-align: center;
-        padding: 10px;
-        border-radius: 5px;
-        min-width: 100px;
-      }
-
-      /* Theme toggle */
-      .theme-toggle {
-        cursor: pointer;
-        font-size: 1.5rem;
-        background: none;
-        border: none;
-        width: 40px;
-        height: 40px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: background-color 0.3s;
-        outline: none;
-      }
-
-      /* Light mode (default) */
       :root {
         --bg-color: #f5f5f7;
         --chart-bg: #ffffff;
@@ -73,9 +14,10 @@
         --chart-border: rgba(75, 192, 192, 1);
         --chart-fill: rgba(75, 192, 192, 0.2);
         --toggle-bg: #e0e0e0;
+        --header-bg: #ffffff;
+        --header-border: #e0e0e0;
       }
 
-      /* Dark mode */
       :root.dark-theme {
         --bg-color: #121212;
         --chart-bg: #1e1e1e;
@@ -84,18 +26,96 @@
         --chart-border: rgba(75, 192, 255, 1);
         --chart-fill: rgba(75, 192, 255, 0.2);
         --toggle-bg: #333333;
+        --header-bg: #1e1e1e;
+        --header-border: #333333;
+      }
+
+      * {
+        box-sizing: border-box;
       }
 
       body {
+        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+        margin: 0;
+        padding: 0;
+        height: 100vh;
+        display: flex;
+        flex-direction: column;
         background-color: var(--bg-color);
         color: var(--text-color);
+        transition: background-color 0.3s, color 0.3s;
+        overflow-y: auto;
+        overflow-x: hidden;
       }
 
-      .chart-container {
-        background-color: var(--chart-bg);
+      .top-bar {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1.5rem;
+        background-color: var(--header-bg);
+        border-bottom: 1px solid var(--header-border);
+        flex-shrink: 0;
+        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+        z-index: 10;
+      }
+
+      .title-section h1 {
+        margin: 0;
+        font-size: 1.1rem;
+        font-weight: 600;
+        letter-spacing: 0.5px;
+      }
+
+      .stats-container {
+        display: flex;
+        gap: 2rem;
+        font-size: 0.9rem;
+      }
+
+      .stat-box {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      .stat-label {
+        opacity: 0.6;
+        font-weight: 500;
+      }
+
+      .stat-value {
+        font-weight: 600;
+        font-family: "Consolas", "Monaco", monospace;
+      }
+
+      .chart-area {
+        flex-grow: 1;
+        position: relative;
+        width: 100%;
+        padding: 1rem;
+        min-height: 300px;
+      }
+
+      .chart-wrapper {
+        position: relative;
+        width: 100%;
+        height: 100%;
       }
 
       .theme-toggle {
+        cursor: pointer;
+        font-size: 1.1rem;
+        background: none;
+        border: none;
+        width: 36px;
+        height: 36px;
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        transition: all 0.2s ease;
+        outline: none;
         background-color: var(--toggle-bg);
         color: var(--text-color);
       }
@@ -103,34 +123,60 @@
       .theme-toggle:hover {
         background-color: var(--chart-border);
         color: white;
+        transform: scale(1.05);
+      }
+
+      @media (max-width: 600px) {
+        .top-bar {
+          flex-wrap: wrap;
+          gap: 10px;
+        }
+        .stats-container {
+          order: 3;
+          width: 100%;
+          justify-content: space-between;
+          gap: 10px;
+          padding-top: 10px;
+          border-top: 1px solid var(--header-border);
+        }
       }
     </style>
   </head>
   <body>
-    <div class="chart-container">
-      <div class="header">
-        <h1>Network Ping Monitor</h1>
-        <button
-          class="theme-toggle"
-          id="themeToggle"
-          title="Toggle dark/light mode"
-        >
-          ☀️
-        </button>
+    <header class="top-bar">
+      <div class="title-section">
+        <h1>Ping Monitor</h1>
       </div>
-      <canvas id="pingChart"></canvas>
-      <div class="stat-info">
+
+      <div class="stats-container">
         <div class="stat-box">
-          <div>Current: <span id="currentPing">-- ms</span></div>
+          <span class="stat-label">Current</span>
+          <span class="stat-value" id="currentPing">-- ms</span>
         </div>
         <div class="stat-box">
-          <div>Average: <span id="avgPing">-- ms</span></div>
+          <span class="stat-label">Avg</span>
+          <span class="stat-value" id="avgPing">-- ms</span>
         </div>
         <div class="stat-box">
-          <div>Max: <span id="maxPing">-- ms</span></div>
+          <span class="stat-label">Max</span>
+          <span class="stat-value" id="maxPing">-- ms</span>
         </div>
       </div>
-    </div>
+
+      <button
+        class="theme-toggle"
+        id="themeToggle"
+        title="Toggle dark/light mode"
+      >
+        ☀️
+      </button>
+    </header>
+
+    <main class="chart-area">
+      <div class="chart-wrapper">
+        <canvas id="pingChart"></canvas>
+      </div>
+    </main>
 
     <script>
       const ws = new WebSocket("ws://" + window.location.host);
@@ -229,18 +275,19 @@
             easing: "easeOutQuad",
           },
           responsive: true,
-          maintainAspectRatio: true,
+          maintainAspectRatio: false, // CHANGED: Allow filling the container
           interaction: {
             intersect: false,
             mode: "index",
           },
           scales: {
             y: {
-              beginAtZero: false,
+              beginAtZero: false, // Better for ping
+              grace: "5%",
               grid: {
                 color: darkMode
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.05)",
               },
               ticks: {
                 color: darkMode ? "#e0e0e0" : "#333333",
@@ -248,20 +295,22 @@
             },
             x: {
               grid: {
+                display: false, // Cleaner look
                 color: darkMode
-                  ? "rgba(255, 255, 255, 0.1)"
-                  : "rgba(0, 0, 0, 0.1)",
+                  ? "rgba(255, 255, 255, 0.05)"
+                  : "rgba(0, 0, 0, 0.05)",
               },
               ticks: {
                 color: darkMode ? "#e0e0e0" : "#333333",
                 maxRotation: 0,
                 autoSkip: true,
-                maxTicksLimit: 10,
+                maxTicksLimit: 8,
               },
             },
           },
           plugins: {
             legend: {
+              display: false, // Hide legend for cleaner look since there is only 1 dataset
               labels: {
                 color: darkMode ? "#e0e0e0" : "#333333",
                 font: {
@@ -271,14 +320,17 @@
             },
             tooltip: {
               backgroundColor: darkMode
-                ? "rgba(30, 30, 30, 0.8)"
-                : "rgba(255, 255, 255, 0.8)",
+                ? "rgba(30, 30, 30, 0.9)"
+                : "rgba(255, 255, 255, 0.9)",
               titleColor: darkMode ? "#ffffff" : "#000000",
               bodyColor: darkMode ? "#e0e0e0" : "#333333",
               borderColor: darkMode
-                ? "rgba(255, 255, 255, 0.2)"
-                : "rgba(0, 0, 0, 0.2)",
+                ? "rgba(255, 255, 255, 0.1)"
+                : "rgba(0, 0, 0, 0.1)",
               borderWidth: 1,
+              padding: 10,
+              cornerRadius: 8,
+              displayColors: false,
             },
           },
         },
@@ -304,18 +356,18 @@
       }
 
       function updateChartTheme() {
+        const gridColor = darkMode
+          ? "rgba(255, 255, 255, 0.05)"
+          : "rgba(0, 0, 0, 0.05)";
+
         chart.data.datasets[0].borderColor = darkMode
           ? "rgba(75, 192, 255, 1)"
           : "rgba(75, 192, 192, 1)";
         chart.data.datasets[0].backgroundColor = darkMode
-          ? "rgba(75, 192, 255, 0.2)"
-          : "rgba(75, 192, 192, 0.2)";
-        chart.options.scales.y.grid.color = darkMode
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.1)";
-        chart.options.scales.x.grid.color = darkMode
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.1)";
+          ? "rgba(75, 192, 255, 0.1)" // More transparent fill
+          : "rgba(75, 192, 192, 0.1)";
+        chart.options.scales.y.grid.color = gridColor;
+        chart.options.scales.x.grid.color = gridColor;
         chart.options.scales.y.ticks.color = darkMode
           ? "#e0e0e0"
           : "#333333";
@@ -326,8 +378,8 @@
           ? "#e0e0e0"
           : "#333333";
         chart.options.plugins.tooltip.backgroundColor = darkMode
-          ? "rgba(30, 30, 30, 0.8)"
-          : "rgba(255, 255, 255, 0.8)";
+          ? "rgba(30, 30, 30, 0.9)"
+          : "rgba(255, 255, 255, 0.9)";
         chart.options.plugins.tooltip.titleColor = darkMode
           ? "#ffffff"
           : "#000000";
@@ -335,8 +387,8 @@
           ? "#e0e0e0"
           : "#333333";
         chart.options.plugins.tooltip.borderColor = darkMode
-          ? "rgba(255, 255, 255, 0.2)"
-          : "rgba(0, 0, 0, 0.2)";
+          ? "rgba(255, 255, 255, 0.1)"
+          : "rgba(0, 0, 0, 0.1)";
         chart.update();
       }
 
@@ -396,12 +448,12 @@
 
       ws.onclose = function (event) {
         console.log("WebSocket connection closed, reconnecting...");
-        chart.data.datasets[0].borderColor = "red";
+        chart.data.datasets[0].borderColor = "#ff6b6b"; // Soft red
       };
 
       ws.onerror = function (error) {
         console.error("WebSocket error:", error);
-        chart.data.datasets[0].borderColor = "red";
+        chart.data.datasets[0].borderColor = "#ff6b6b";
         chart.update(); // immediate
       };
 
@@ -420,7 +472,7 @@
             addDataPoint(timeString, 0);
 
             // Change line color to red if disconnected
-            chart.data.datasets[0].borderColor = "red";
+            chart.data.datasets[0].borderColor = "#ff6b6b";
 
             chart.update();
             lastReceivedTime = currentTime; // Treat this as a "received" point
