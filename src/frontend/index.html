@@ -87,6 +87,7 @@
       .stat-value {
         font-weight: 600;
         font-family: "Consolas", "Monaco", monospace;
+        font-size: 1.5rem;
       }
 
       .chart-area {
@@ -291,6 +292,9 @@
               },
               ticks: {
                 color: darkMode ? "#e0e0e0" : "#333333",
+                font: {
+                  size: 14,
+                },
               },
             },
             x: {
@@ -305,6 +309,9 @@
                 maxRotation: 0,
                 autoSkip: true,
                 maxTicksLimit: 8,
+                font: {
+                  size: 14,
+                },
               },
             },
           },
@@ -363,6 +370,8 @@
         chart.data.datasets[0].borderColor = darkMode
           ? "rgba(75, 192, 255, 1)"
           : "rgba(75, 192, 192, 1)";
+        document.getElementById("currentPing").style.color = chart.data
+          .datasets[0].borderColor;
         chart.data.datasets[0].backgroundColor = darkMode
           ? "rgba(75, 192, 255, 0.1)" // More transparent fill
           : "rgba(75, 192, 192, 0.1)";
@@ -437,9 +446,11 @@
           addDataPoint(timeString, data.ping);
           updateStats();
           lastReceivedTime = Date.now();
-          chart.data.datasets[0].borderColor = darkMode
+          const newColor = darkMode
             ? "rgba(75, 192, 255, 1)"
-            : "rgba(75, 192, 192, 1)"; // Reset to default color
+            : "rgba(75, 192, 192, 1)";
+          chart.data.datasets[0].borderColor = newColor; // Reset to default color
+          document.getElementById("currentPing").style.color = newColor;
           chart.update();
         } catch (e) {
           console.error("Error processing ping data:", e);
@@ -449,11 +460,13 @@
       ws.onclose = function (event) {
         console.log("WebSocket connection closed, reconnecting...");
         chart.data.datasets[0].borderColor = "#ff6b6b"; // Soft red
+        document.getElementById("currentPing").style.color = "#ff6b6b";
       };
 
       ws.onerror = function (error) {
         console.error("WebSocket error:", error);
         chart.data.datasets[0].borderColor = "#ff6b6b";
+        document.getElementById("currentPing").style.color = "#ff6b6b";
         chart.update(); // immediate
       };
 
@@ -473,6 +486,7 @@
 
             // Change line color to red if disconnected
             chart.data.datasets[0].borderColor = "#ff6b6b";
+            document.getElementById("currentPing").style.color = "#ff6b6b";
 
             chart.update();
             lastReceivedTime = currentTime; // Treat this as a "received" point
