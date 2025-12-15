@@ -52,6 +52,15 @@ const oldSha = await fetch(
 const result = await $`git checkout ${version}`.noThrow();
 if (result.code !== 0) await $`git checkout -b ${version}`;
 
+console.log(
+  "Replacing old version",
+  oldVersion,
+  "with new version",
+  version,
+  "for app",
+  appName,
+);
+
 await Deno.readTextFile(`./io.github.sigmasd.${appName}.yml`)
   .then((r) => r.replace(`${oldVersion}.tar.gz`, `${version}.tar.gz`))
   .then((r) => r.replace(oldSha, newSha))
