@@ -28,7 +28,7 @@ times graph.
 
 ## Features
 
-- Real-time ping measurements to a specified host (default: 8.8.8.8)
+- Real-time ping measurements to a specified host (default: 1.1.1.1)
 - WebSocket communication between backend and frontend
 - Live updating line graph showing ping times over time
 - Desktop application using WebView

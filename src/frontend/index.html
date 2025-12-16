@@ -5,6 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ping Graph</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="./assets/material-symbols.css" />
     <style>
       :root {
         --bg-color: #f5f5f7;
@@ -16,6 +17,8 @@
         --toggle-bg: #e0e0e0;
         --header-bg: #ffffff;
         --header-border: #e0e0e0;
+        --input-bg: #ffffff;
+        --input-border: #cccccc;
       }
 
       :root.dark-theme {
@@ -28,6 +31,8 @@
         --toggle-bg: #333333;
         --header-bg: #1e1e1e;
         --header-border: #333333;
+        --input-bg: #2d2d2d;
+        --input-border: #444444;
       }
 
       * {
@@ -58,25 +63,103 @@
         flex-shrink: 0;
         box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
         z-index: 10;
+        gap: 1rem;
       }
 
-      .title-section h1 {
-        margin: 0;
-        font-size: 1.1rem;
+      .error-banner {
+        background-color: #ff5252;
+        color: white;
+        padding: 0.5rem 1.5rem;
+        text-align: center;
+        font-weight: 500;
+        display: none;
+        flex-shrink: 0;
+        animation: slideDown 0.3s ease-out;
+      }
+
+      @keyframes slideDown {
+        from {
+          transform: translateY(-100%);
+        }
+        to {
+          transform: translateY(0);
+        }
+      }
+
+      .controls-area {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+        flex-grow: 1;
+        max-width: 600px;
+      }
+
+      .host-input {
+        padding: 0.5rem 0.8rem;
+        border-radius: 6px;
+        border: 1px solid var(--input-border);
+        background: var(--input-bg);
+        color: var(--text-color);
+        font-family: inherit;
+        font-size: 0.9rem;
+        width: 180px;
+        outline: none;
+        transition: border-color 0.2s;
+      }
+
+      .host-input:focus {
+        border-color: var(--chart-border);
+      }
+
+      .control-btn {
+        background: var(--toggle-bg);
+        color: var(--text-color);
+        border: none;
+        border-radius: 6px;
+        padding: 0.4rem; /* Adjusted for icons */
+        cursor: pointer;
+        transition: all 0.2s;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        min-width: 36px;
+        height: 36px;
+      }
+
+      .control-btn:hover {
+        background-color: var(--chart-border);
+        color: white;
+      }
+
+      .control-btn .material-symbols-outlined {
+        font-size: 20px;
+      }
+
+      #updateHostBtn {
+        display: none; /* Hidden by default */
         font-weight: 600;
-        letter-spacing: 0.5px;
+        padding: 0 0.8rem;
+        width: auto;
+      }
+
+      .divider {
+        width: 1px;
+        height: 24px;
+        background-color: var(--header-border);
+        margin: 0 0.5rem;
       }
 
       .stats-container {
         display: flex;
-        gap: 2rem;
+        gap: 1.5rem;
         font-size: 0.9rem;
+        margin-left: auto;
       }
 
       .stat-box {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 6px;
       }
 
       .stat-label {
@@ -87,7 +170,7 @@
       .stat-value {
         font-weight: 600;
         font-family: "Consolas", "Monaco", monospace;
-        font-size: 1.5rem;
+        font-size: 1.2rem;
       }
 
       .chart-area {
@@ -119,6 +202,7 @@
         outline: none;
         background-color: var(--toggle-bg);
         color: var(--text-color);
+        margin-left: 1rem;
       }
 
       .theme-toggle:hover {
@@ -127,26 +211,55 @@
         transform: scale(1.05);
       }
 
-      @media (max-width: 600px) {
+      @media (max-width: 800px) {
         .top-bar {
           flex-wrap: wrap;
-          gap: 10px;
+          padding: 0.5rem;
+        }
+        .controls-area {
+          order: 1;
+          width: 100%;
+          max-width: none;
+          justify-content: space-between;
+        }
+        .host-input {
+          width: 100%;
         }
         .stats-container {
-          order: 3;
+          order: 2;
           width: 100%;
           justify-content: space-between;
-          gap: 10px;
           padding-top: 10px;
           border-top: 1px solid var(--header-border);
+          margin-left: 0;
+        }
+        .theme-toggle {
+          order: 3;
+          position: absolute;
+          top: 0.5rem;
+          right: 0.5rem;
         }
       }
     </style>
   </head>
   <body>
     <header class="top-bar">
-      <div class="title-section">
-        <h1>Ping Monitor</h1>
+      <div class="controls-area">
+        <input
+          type="text"
+          id="hostInput"
+          value="1.1.1.1"
+          placeholder="Host/IP"
+          class="host-input"
+          spellcheck="false"
+        />
+        <button id="updateHostBtn" class="control-btn" title="Update Host">
+          Update
+        </button>
+        <div class="divider"></div>
+        <button id="pauseBtn" class="control-btn" title="Pause/Resume">
+          <span class="material-symbols-outlined">pause</span>
+        </button>
       </div>
 
       <div class="stats-container">
@@ -173,6 +286,8 @@
       </button>
     </header>
 
+    <div id="errorBanner" class="error-banner"></div>
+
     <main class="chart-area">
       <div class="chart-wrapper">
         <canvas id="pingChart"></canvas>
@@ -183,39 +298,42 @@
       const ws = new WebSocket("ws://" + window.location.host);
       const ctx = document.getElementById("pingChart").getContext("2d");
       const themeToggle = document.getElementById("themeToggle");
+      const hostInput = document.getElementById("hostInput");
+      const updateHostBtn = document.getElementById("updateHostBtn");
+      const pauseBtn = document.getElementById("pauseBtn");
+      const errorBanner = document.getElementById("errorBanner");
+
       let pingValues = [];
       const MAX_DATA_POINTS = 60;
-      const REMOVE_CHUNK_SIZE = 10; // Remove 10 points at once when needed
+      const REMOVE_CHUNK_SIZE = 10;
 
+      // State
+      let isPaused = false;
       let lastReceivedTime = Date.now();
       const PING_INTERVAL = 1000;
+      let currentHost = "1.1.1.1";
 
-      // Check if running in Webview context
+      // Theme logic
       const isWebview = typeof window.getInitialTheme === "function";
       let darkMode = window.matchMedia &&
         window.matchMedia("(prefers-color-scheme: dark)").matches;
 
-      // Function to initialize theme
       async function initializeTheme() {
-        // If in Webview, get theme from the app storage
         if (isWebview) {
           try {
             const savedTheme = await window.getInitialTheme();
-            if (savedTheme) {
-              darkMode = savedTheme === "dark";
-            }
+            if (savedTheme) darkMode = savedTheme === "dark";
           } catch (e) {
-            console.error("Error getting theme from Webview:", e);
+            console.error(e);
           }
         } else {
-          // Browser mode - use localStorage
           const savedTheme = localStorage.getItem("theme");
-          if (savedTheme) {
-            darkMode = savedTheme === "dark";
-          }
+          if (savedTheme) darkMode = savedTheme === "dark";
         }
+        applyTheme();
+      }
 
-        // Apply theme
+      function applyTheme() {
         document.documentElement.classList.toggle(
           "dark-theme",
           darkMode,
@@ -224,37 +342,22 @@
         updateChartTheme();
       }
 
-      // Call theme initialization
       initializeTheme();
 
-      // Theme toggle functionality
       themeToggle.addEventListener("click", () => {
         darkMode = !darkMode;
         const themeValue = darkMode ? "dark" : "light";
-
-        document.documentElement.classList.toggle(
-          "dark-theme",
-          darkMode,
-        );
-        themeToggle.textContent = darkMode ? "🌙" : "☀️";
-
-        // Save theme preference
         if (isWebview) {
-          // Save in Webview's backend
           try {
             window.saveTheme(themeValue);
-          } catch (e) {
-            console.error("Error saving theme in Webview:", e);
-          }
+          } catch (e) {}
         } else {
-          // Save in browser's localStorage
           localStorage.setItem("theme", themeValue);
         }
-
-        updateChartTheme();
+        applyTheme();
       });
 
-      // Set up Chart.js with theme-aware colors
+      // Chart setup
       const chart = new Chart(ctx, {
         type: "line",
         data: {
@@ -262,12 +365,12 @@
           datasets: [{
             label: "Ping (ms)",
             data: [],
-            borderColor: "rgba(75, 192, 192, 1)", // Default color
+            borderColor: "rgba(75, 192, 192, 1)",
             backgroundColor: "rgba(75, 192, 192, 0.2)",
             borderWidth: 2,
             fill: true,
             tension: 0.2,
-            pointRadius: 3, // Show points
+            pointRadius: 3,
             segment: {
               borderColor: (ctx) =>
                 ctx.p1.parsed.y === 0 ? "#ff6b6b" : undefined,
@@ -285,69 +388,35 @@
           }],
         },
         options: {
-          animation: {
-            duration: 500,
-            easing: "easeOutQuad",
-          },
+          animation: { duration: 500, easing: "easeOutQuad" },
           responsive: true,
-          maintainAspectRatio: false, // CHANGED: Allow filling the container
-          interaction: {
-            intersect: false,
-            mode: "index",
-          },
+          maintainAspectRatio: false,
+          interaction: { intersect: false, mode: "index" },
           scales: {
             y: {
-              beginAtZero: false, // Better for ping
+              beginAtZero: false,
               grace: "5%",
-              grid: {
-                color: darkMode
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
-              ticks: {
-                color: darkMode ? "#e0e0e0" : "#333333",
-                font: {
-                  size: 14,
-                },
-              },
+              grid: { color: "rgba(0,0,0,0.05)" },
+              ticks: { color: "#333", font: { size: 14 } },
             },
             x: {
-              grid: {
-                display: false, // Cleaner look
-                color: darkMode
-                  ? "rgba(255, 255, 255, 0.05)"
-                  : "rgba(0, 0, 0, 0.05)",
-              },
+              grid: { display: false, color: "rgba(0,0,0,0.05)" },
               ticks: {
-                color: darkMode ? "#e0e0e0" : "#333333",
+                color: "#333",
                 maxRotation: 0,
                 autoSkip: true,
                 maxTicksLimit: 8,
-                font: {
-                  size: 14,
-                },
+                font: { size: 14 },
               },
             },
           },
           plugins: {
-            legend: {
-              display: false, // Hide legend for cleaner look since there is only 1 dataset
-              labels: {
-                color: darkMode ? "#e0e0e0" : "#333333",
-                font: {
-                  size: 14,
-                },
-              },
-            },
+            legend: { display: false },
             tooltip: {
-              backgroundColor: darkMode
-                ? "rgba(30, 30, 30, 0.9)"
-                : "rgba(255, 255, 255, 0.9)",
-              titleColor: darkMode ? "#ffffff" : "#000000",
-              bodyColor: darkMode ? "#e0e0e0" : "#333333",
-              borderColor: darkMode
-                ? "rgba(255, 255, 255, 0.1)"
-                : "rgba(0, 0, 0, 0.1)",
+              backgroundColor: "rgba(255,255,255,0.9)",
+              titleColor: "#000",
+              bodyColor: "#333",
+              borderColor: "rgba(0,0,0,0.1)",
               borderWidth: 1,
               padding: 10,
               cornerRadius: 8,
@@ -357,61 +426,40 @@
         },
       });
 
-      // Listen for system theme changes (browser-only)
-      if (!isWebview && window.matchMedia) {
-        window.matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", (e) => {
-            // Only apply system theme if no manual preference is set
-            const hasStoredPreference =
-              localStorage.getItem("theme") !== null;
-            if (!hasStoredPreference) {
-              darkMode = e.matches;
-              document.documentElement.classList.toggle(
-                "dark-theme",
-                darkMode,
-              );
-              themeToggle.textContent = darkMode ? "🌙" : "☀️";
-              updateChartTheme();
-            }
-          });
-      }
-
       function updateChartTheme() {
         const gridColor = darkMode
           ? "rgba(255, 255, 255, 0.05)"
           : "rgba(0, 0, 0, 0.05)";
+        const textColor = darkMode ? "#e0e0e0" : "#333333";
 
         chart.data.datasets[0].borderColor = darkMode
           ? "rgba(75, 192, 255, 1)"
           : "rgba(75, 192, 192, 1)";
-        document.getElementById("currentPing").style.color = chart.data
-          .datasets[0].borderColor;
+
+        // Update current value color immediately
+        const currentEl = document.getElementById("currentPing");
+        if (currentEl.style.color !== "rgb(255, 107, 107)") { // Don't override error color
+          currentEl.style.color = chart.data.datasets[0].borderColor;
+        }
+
         chart.data.datasets[0].backgroundColor = darkMode
-          ? "rgba(75, 192, 255, 0.1)" // More transparent fill
+          ? "rgba(75, 192, 255, 0.1)"
           : "rgba(75, 192, 192, 0.1)";
         chart.options.scales.y.grid.color = gridColor;
         chart.options.scales.x.grid.color = gridColor;
-        chart.options.scales.y.ticks.color = darkMode
-          ? "#e0e0e0"
-          : "#333333";
-        chart.options.scales.x.ticks.color = darkMode
-          ? "#e0e0e0"
-          : "#333333";
-        chart.options.plugins.legend.labels.color = darkMode
-          ? "#e0e0e0"
-          : "#333333";
+        chart.options.scales.y.ticks.color = textColor;
+        chart.options.scales.x.ticks.color = textColor;
         chart.options.plugins.tooltip.backgroundColor = darkMode
           ? "rgba(30, 30, 30, 0.9)"
           : "rgba(255, 255, 255, 0.9)";
         chart.options.plugins.tooltip.titleColor = darkMode
           ? "#ffffff"
           : "#000000";
-        chart.options.plugins.tooltip.bodyColor = darkMode
-          ? "#e0e0e0"
-          : "#333333";
+        chart.options.plugins.tooltip.bodyColor = textColor;
         chart.options.plugins.tooltip.borderColor = darkMode
           ? "rgba(255, 255, 255, 0.1)"
           : "rgba(0, 0, 0, 0.1)";
+
         chart.update();
       }
 
@@ -446,47 +494,138 @@
         }
       }
 
-      // WebSocket message handling
+      function showError(msg) {
+        errorBanner.textContent = msg;
+        errorBanner.style.display = "block";
+      }
+
+      function hideError() {
+        errorBanner.style.display = "none";
+      }
+
+      // --- New Feature Implementation ---
+
+      // 1. Update Host
+      hostInput.addEventListener("input", (e) => {
+        if (e.target.value.trim() !== currentHost) {
+          updateHostBtn.style.display = "flex";
+        } else {
+          updateHostBtn.style.display = "none";
+        }
+      });
+
+      function handleUpdateHost() {
+        const newHost = hostInput.value.trim();
+        if (newHost) {
+          currentHost = newHost;
+          updateHostBtn.style.display = "none";
+          hideError();
+
+          // Clear chart for new session
+          pingValues = [];
+          chart.data.labels = [];
+          chart.data.datasets[0].data = [];
+          chart.update();
+
+          ws.send(
+            JSON.stringify({ type: "updateHost", host: newHost }),
+          );
+
+          // Reset pause state if paused
+          if (isPaused) {
+            isPaused = false;
+            pauseBtn.querySelector("span").textContent = "pause";
+            ws.send(JSON.stringify({ type: "resume" }));
+          }
+        }
+      }
+
+      updateHostBtn.addEventListener("click", handleUpdateHost);
+
+      // Allow Enter key to update host
+      hostInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") handleUpdateHost();
+      });
+
+      // 2. Pause/Resume
+      pauseBtn.addEventListener("click", () => {
+        isPaused = !isPaused;
+        pauseBtn.querySelector("span").textContent = isPaused
+          ? "play_arrow"
+          : "pause";
+        ws.send(
+          JSON.stringify({ type: isPaused ? "pause" : "resume" }),
+        );
+      });
+
+      // Keyboard shortcut for Pause/Resume
+      document.addEventListener("keydown", (e) => {
+        if (
+          e.code === "Space" && e.target.tagName !== "INPUT" &&
+          e.target.tagName !== "TEXTAREA"
+        ) {
+          e.preventDefault(); // Prevent default spacebar action (e.g., scrolling)
+          pauseBtn.click(); // Toggle the pause button
+        }
+      });
+
+      // WebSocket Handling
       ws.onmessage = function (event) {
+        if (isPaused) return;
+
         try {
           const data = JSON.parse(event.data);
-          const now = new Date();
-          const timeString = now.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-          });
 
-          addDataPoint(timeString, data.ping);
-          updateStats();
-          lastReceivedTime = Date.now();
-          const newColor = darkMode
-            ? "rgba(75, 192, 255, 1)"
-            : "rgba(75, 192, 192, 1)";
-          document.getElementById("currentPing").style.color = newColor;
-          chart.update();
+          if (data.type === "error") {
+            showError(data.message);
+            return;
+          }
+
+          if (data.ping !== undefined) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString([], {
+              hour: "2-digit",
+              minute: "2-digit",
+              second: "2-digit",
+            });
+
+            addDataPoint(timeString, data.ping);
+            updateStats();
+            lastReceivedTime = Date.now();
+            hideError(); // Clear error on successful ping
+
+            const newColor = darkMode
+              ? "rgba(75, 192, 255, 1)"
+              : "rgba(75, 192, 192, 1)";
+            document.getElementById("currentPing").style.color =
+              newColor;
+            chart.update();
+          }
         } catch (e) {
           console.error("Error processing ping data:", e);
         }
       };
 
-      ws.onclose = function (event) {
-        console.log("WebSocket connection closed, reconnecting...");
+      ws.onclose = () => {
+        console.log("WebSocket connection closed");
         document.getElementById("currentPing").style.color = "#ff6b6b";
       };
 
-      ws.onerror = function (error) {
+      ws.onerror = (error) => {
         console.error("WebSocket error:", error);
         document.getElementById("currentPing").style.color = "#ff6b6b";
-        chart.update(); // immediate
+        chart.update();
       };
 
+      // Watchdog
       setInterval(() => {
+        if (isPaused) return; // Don't flag errors if manually paused
+
         if (ws.readyState === WebSocket.OPEN) {
           const currentTime = Date.now();
           const timeSinceLastPing = currentTime - lastReceivedTime;
 
-          if (timeSinceLastPing >= PING_INTERVAL) {
+          if (timeSinceLastPing >= PING_INTERVAL * 2) { // Allow some slack (2s)
             const now = new Date();
             const timeString = now.toLocaleTimeString([], {
               hour: "2-digit",
@@ -495,12 +634,10 @@
             });
             addDataPoint(timeString, 0);
 
-            // Change line color to red if disconnected
             document.getElementById("currentPing").style.color =
               "#ff6b6b";
-
             chart.update();
-            lastReceivedTime = currentTime; // Treat this as a "received" point
+            lastReceivedTime = currentTime;
           }
         }
       }, PING_INTERVAL);

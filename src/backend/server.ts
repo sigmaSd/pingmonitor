@@ -3,22 +3,94 @@
 
 import "@sigma/deno-compile-extra/fetchPatch";
 
-async function* pingGenerator(pingHost = "8.8.8.8") {
-  const process = new Deno.Command("ping", {
-    args: [pingHost],
+function startPingSession(socket: WebSocket, host: string) {
+  stopPing();
+
+  const cmd = new Deno.Command("ping", {
+    args: [host],
     stdout: "piped",
     stderr: "piped",
-  }).spawn();
+  });
 
-  for await (
-    const value of process.stdout.pipeThrough(new TextDecoderStream())
-  ) {
-    const match = value.match(/time=(\d+(\.\d+)?)/);
-    if (match) {
-      yield parseFloat(match[1]);
+  const process = cmd.spawn();
+  currentProcess = process;
+
+  // Handle stdout
+  (async () => {
+    try {
+      const stream = process.stdout.pipeThrough(new TextDecoderStream());
+      for await (const value of stream) {
+        if (process !== currentProcess) break;
+
+        const match = value.match(/time=(\d+(\.\d+)?)/);
+        if (match) {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ ping: parseFloat(match[1]) }));
+          }
+        }
+      }
+    } catch (_error) {
+      // Ignore
     }
+  })();
 
-    await new Promise((resolve) => setTimeout(resolve, 1000));
+  // Handle stderr for errors (like unknown host)
+  (async () => {
+    try {
+      const stderrStream = process.stderr.pipeThrough(new TextDecoderStream());
+      for await (const chunk of stderrStream) {
+        if (process !== currentProcess) break;
+        if (chunk.trim().length > 0) {
+          console.error("Ping stderr:", chunk);
+          // Simple heuristic to show relevant errors
+          if (
+            chunk.includes("unknown host") ||
+            chunk.includes("Temporary failure") ||
+            chunk.includes("Name or service not known")
+          ) {
+            if (socket.readyState === WebSocket.OPEN) {
+              socket.send(
+                JSON.stringify({
+                  type: "error",
+                  message: `Ping failed: ${chunk.trim()}`,
+                }),
+              );
+            }
+          }
+        }
+      }
+    } catch (_e) {
+      // Ignore
+    }
+  })();
+
+  // Handle process exit
+  process.status.then((status) => {
+    if (
+      process === currentProcess && !status.success && status.code !== 0 &&
+      status.signal === null
+    ) {
+      // It exited with error, and wasn't killed by us (signal would be set if we killed it usually, though Deno's kill might differ, checking currentProcess is safer)
+      if (socket.readyState === WebSocket.OPEN) {
+        // Only send generic exit error if we haven't likely sent a specific stderr one, or just generic.
+        // For now, let's rely on stderr for specific text, or just say it exited.
+        // socket.send(JSON.stringify({ type: "error", message: "Ping process exited unexpectedly." }));
+      }
+    }
+  });
+}
+
+let currentProcess: Deno.ChildProcess | null = null;
+let currentHost = "1.1.1.1";
+
+function stopPing() {
+  if (currentProcess) {
+    try {
+      currentProcess.kill();
+    } catch (_e) {
+      // Ignore
+    }
+    currentProcess = null;
   }
 }
 
@@ -37,20 +109,31 @@ if (import.meta.main) {
 
       console.log("New WebSocket connection");
 
-      socket.addEventListener("open", async () => {
+      socket.addEventListener("open", () => {
         console.log("WebSocket connection opened");
+        // Start default ping
+        startPingSession(socket, currentHost);
+      });
 
-        for await (const ping of pingGenerator()) {
-          if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ ping }));
-          } else {
-            break;
+      socket.addEventListener("message", (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data.type === "updateHost" && data.host) {
+            currentHost = data.host;
+            startPingSession(socket, currentHost);
+          } else if (data.type === "pause") {
+            stopPing();
+          } else if (data.type === "resume") {
+            startPingSession(socket, currentHost);
           }
+        } catch (e) {
+          console.error("Error handling message:", e);
         }
       });
 
       socket.addEventListener("close", () => {
         console.log("WebSocket connection closed");
+        stopPing();
       });
 
       return response;
@@ -62,6 +145,27 @@ if (import.meta.main) {
       return new Response(html, {
         headers: { "content-type": "text/html" },
       });
+    }
+
+    if (path.startsWith("/assets/")) {
+      const assetPath = path.replace("/assets/", "");
+      const fileUrl = import.meta.resolve(`../frontend/assets/${assetPath}`);
+      try {
+        const file = await fetch(fileUrl);
+        if (!file.ok) return new Response("Not Found", { status: 404 });
+
+        const contentType = assetPath.endsWith(".css")
+          ? "text/css"
+          : assetPath.endsWith(".ttf")
+          ? "font/ttf"
+          : "application/octet-stream";
+
+        return new Response(file.body, {
+          headers: { "content-type": contentType },
+        });
+      } catch {
+        return new Response("Not Found", { status: 404 });
+      }
     }
 
     if (path === "/favicon.ico") {
