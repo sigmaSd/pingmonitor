@@ -269,10 +269,19 @@
             tension: 0.2,
             pointRadius: 3, // Show points
             segment: {
-              borderColor: ctx => ctx.p1.parsed.y === 0 ? '#ff6b6b' : undefined
+              borderColor: (ctx) =>
+                ctx.p1.parsed.y === 0 ? "#ff6b6b" : undefined,
             },
-            pointBackgroundColor: ctx => (ctx.parsed?.y === 0 ? '#ff6b6b' : ctx.chart.data.datasets[0].borderColor),
-            pointBorderColor: ctx => (ctx.parsed?.y === 0 ? '#ff6b6b' : ctx.chart.data.datasets[0].borderColor),
+            pointBackgroundColor: (
+              ctx,
+            ) => (ctx.parsed?.y === 0
+              ? "#ff6b6b"
+              : ctx.chart.data.datasets[0].borderColor),
+            pointBorderColor: (
+              ctx,
+            ) => (ctx.parsed?.y === 0
+              ? "#ff6b6b"
+              : ctx.chart.data.datasets[0].borderColor),
           }],
         },
         options: {
@@ -487,7 +496,8 @@
             addDataPoint(timeString, 0);
 
             // Change line color to red if disconnected
-            document.getElementById("currentPing").style.color = "#ff6b6b";
+            document.getElementById("currentPing").style.color =
+              "#ff6b6b";
 
             chart.update();
             lastReceivedTime = currentTime; // Treat this as a "received" point
