@@ -268,11 +268,16 @@
             fill: true,
             tension: 0.2,
             pointRadius: 3, // Show points
+            segment: {
+              borderColor: ctx => ctx.p1.parsed.y === 0 ? '#ff6b6b' : undefined
+            },
+            pointBackgroundColor: ctx => (ctx.parsed?.y === 0 ? '#ff6b6b' : ctx.chart.data.datasets[0].borderColor),
+            pointBorderColor: ctx => (ctx.parsed?.y === 0 ? '#ff6b6b' : ctx.chart.data.datasets[0].borderColor),
           }],
         },
         options: {
           animation: {
-            duration: 600,
+            duration: 300,
             easing: "easeOutQuad",
           },
           responsive: true,
@@ -449,7 +454,6 @@
           const newColor = darkMode
             ? "rgba(75, 192, 255, 1)"
             : "rgba(75, 192, 192, 1)";
-          chart.data.datasets[0].borderColor = newColor; // Reset to default color
           document.getElementById("currentPing").style.color = newColor;
           chart.update();
         } catch (e) {
@@ -459,13 +463,11 @@
 
       ws.onclose = function (event) {
         console.log("WebSocket connection closed, reconnecting...");
-        chart.data.datasets[0].borderColor = "#ff6b6b"; // Soft red
         document.getElementById("currentPing").style.color = "#ff6b6b";
       };
 
       ws.onerror = function (error) {
         console.error("WebSocket error:", error);
-        chart.data.datasets[0].borderColor = "#ff6b6b";
         document.getElementById("currentPing").style.color = "#ff6b6b";
         chart.update(); // immediate
       };
@@ -485,7 +487,6 @@
             addDataPoint(timeString, 0);
 
             // Change line color to red if disconnected
-            chart.data.datasets[0].borderColor = "#ff6b6b";
             document.getElementById("currentPing").style.color = "#ff6b6b";
 
             chart.update();
