@@ -494,14 +494,17 @@
         );
         if (pings.length > 0) {
           const currentPing = pings[pings.length - 1];
-          const avgPing = (pings.reduce((a, b) => a + b, 0) / pings.length)
+          const avgPing = (pings.reduce((a, b) =>
+            a + b, 0) / pings.length)
             .toFixed(1);
           const maxPing = Math.max(...pings);
 
           document.getElementById("currentPing").textContent =
             `${currentPing} ms`;
-          document.getElementById("avgPing").textContent = `${avgPing} ms`;
-          document.getElementById("maxPing").textContent = `${maxPing} ms`;
+          document.getElementById("avgPing").textContent =
+            `${avgPing} ms`;
+          document.getElementById("maxPing").textContent =
+            `${maxPing} ms`;
         }
       }
 
@@ -510,10 +513,13 @@
         chart.data.datasets[0].data.push(pingValue);
 
         if (chart.data.labels.length > MAX_DATA_POINTS) {
-          chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
-          chart.data.datasets[0].data = chart.data.datasets[0].data.slice(
+          chart.data.labels = chart.data.labels.slice(
             REMOVE_CHUNK_SIZE,
           );
+          chart.data.datasets[0].data = chart.data.datasets[0].data
+            .slice(
+              REMOVE_CHUNK_SIZE,
+            );
         }
       }
 
@@ -622,17 +628,20 @@
             const newColor = darkMode
               ? "rgba(75, 192, 255, 1)"
               : "rgba(75, 192, 192, 1)";
-            document.getElementById("currentPing").style.color = newColor;
+            document.getElementById("currentPing").style.color =
+              newColor;
             updated = true;
           }
 
           if (data.speed !== undefined) {
-            document.getElementById("downloadSpeed").textContent = formatSpeed(
-              data.speed.rx,
-            );
-            document.getElementById("uploadSpeed").textContent = formatSpeed(
-              data.speed.tx,
-            );
+            document.getElementById("downloadSpeed").textContent =
+              formatSpeed(
+                data.speed.rx,
+              );
+            document.getElementById("uploadSpeed").textContent =
+              formatSpeed(
+                data.speed.tx,
+              );
             // No graph update for speed
           }
 
