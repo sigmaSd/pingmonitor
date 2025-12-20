@@ -275,6 +275,15 @@
           <span class="stat-label">Max</span>
           <span class="stat-value" id="maxPing">-- ms</span>
         </div>
+        <div class="divider"></div>
+        <div class="stat-box">
+          <span class="stat-label">↓</span>
+          <span class="stat-value" id="downloadSpeed">--</span>
+        </div>
+        <div class="stat-box">
+          <span class="stat-label">↑</span>
+          <span class="stat-value" id="uploadSpeed">--</span>
+        </div>
       </div>
 
       <button
@@ -303,7 +312,7 @@
       const pauseBtn = document.getElementById("pauseBtn");
       const errorBanner = document.getElementById("errorBanner");
 
-      let pingValues = [];
+      // let pingValues = [];
       const MAX_DATA_POINTS = 60;
       const REMOVE_CHUNK_SIZE = 10;
 
@@ -362,30 +371,31 @@
         type: "line",
         data: {
           labels: [],
-          datasets: [{
-            label: "Ping (ms)",
-            data: [],
-            borderColor: "rgba(75, 192, 192, 1)",
-            backgroundColor: "rgba(75, 192, 192, 0.2)",
-            borderWidth: 2,
-            fill: true,
-            tension: 0.2,
-            pointRadius: 3,
-            segment: {
-              borderColor: (ctx) =>
-                ctx.p1.parsed.y === 0 ? "#ff6b6b" : undefined,
+          datasets: [
+            {
+              label: "Ping (ms)",
+              data: [],
+              borderColor: "rgba(75, 192, 192, 1)",
+              backgroundColor: "rgba(75, 192, 192, 0.2)",
+              borderWidth: 2,
+              fill: true,
+              tension: 0.2,
+              pointRadius: 3,
+              spanGaps: true,
+              segment: {
+                borderColor: (ctx) =>
+                  ctx.p1.parsed.y === 0 ? "#ff6b6b" : undefined,
+              },
+              pointBackgroundColor: (ctx) =>
+                ctx.parsed?.y === 0
+                  ? "#ff6b6b"
+                  : ctx.chart.data.datasets[0].borderColor,
+              pointBorderColor: (ctx) =>
+                ctx.parsed?.y === 0
+                  ? "#ff6b6b"
+                  : ctx.chart.data.datasets[0].borderColor,
             },
-            pointBackgroundColor: (
-              ctx,
-            ) => (ctx.parsed?.y === 0
-              ? "#ff6b6b"
-              : ctx.chart.data.datasets[0].borderColor),
-            pointBorderColor: (
-              ctx,
-            ) => (ctx.parsed?.y === 0
-              ? "#ff6b6b"
-              : ctx.chart.data.datasets[0].borderColor),
-          }],
+          ],
         },
         options: {
           animation: { duration: 500, easing: "easeOutQuad" },
@@ -394,6 +404,9 @@
           interaction: { intersect: false, mode: "index" },
           scales: {
             y: {
+              type: "linear",
+              display: true,
+              position: "left",
               beginAtZero: false,
               grace: "5%",
               grid: { color: "rgba(0,0,0,0.05)" },
@@ -463,34 +476,44 @@
         chart.update();
       }
 
+      function formatSpeed(bytesPerSec) {
+        if (!bytesPerSec) return "0 B/s";
+        const units = ["B/s", "kB/s", "MB/s", "GB/s"];
+        let val = bytesPerSec;
+        let unitIndex = 0;
+        while (val >= 1024 && unitIndex < units.length - 1) {
+          val /= 1024;
+          unitIndex++;
+        }
+        return `${val.toFixed(1)} ${units[unitIndex]}`;
+      }
+
       function updateStats() {
-        if (pingValues.length > 0) {
-          const currentPing = pingValues[pingValues.length - 1];
-          const avgPing = (pingValues.reduce((a, b) =>
-            a + b, 0) / pingValues.length).toFixed(1);
-          const maxPing = Math.max(...pingValues);
+        const pings = chart.data.datasets[0].data.filter((v) =>
+          v !== undefined && v !== null
+        );
+        if (pings.length > 0) {
+          const currentPing = pings[pings.length - 1];
+          const avgPing = (pings.reduce((a, b) => a + b, 0) / pings.length)
+            .toFixed(1);
+          const maxPing = Math.max(...pings);
 
           document.getElementById("currentPing").textContent =
             `${currentPing} ms`;
-          document.getElementById("avgPing").textContent =
-            `${avgPing} ms`;
-          document.getElementById("maxPing").textContent =
-            `${maxPing} ms`;
+          document.getElementById("avgPing").textContent = `${avgPing} ms`;
+          document.getElementById("maxPing").textContent = `${maxPing} ms`;
         }
       }
 
       function addDataPoint(timeString, pingValue) {
         chart.data.labels.push(timeString);
         chart.data.datasets[0].data.push(pingValue);
-        pingValues.push(pingValue);
 
         if (chart.data.labels.length > MAX_DATA_POINTS) {
-          chart.data.labels = chart.data.labels.slice(
+          chart.data.labels = chart.data.labels.slice(REMOVE_CHUNK_SIZE);
+          chart.data.datasets[0].data = chart.data.datasets[0].data.slice(
             REMOVE_CHUNK_SIZE,
           );
-          chart.data.datasets[0].data = chart.data.datasets[0].data
-            .slice(REMOVE_CHUNK_SIZE);
-          pingValues = pingValues.slice(REMOVE_CHUNK_SIZE);
         }
       }
 
@@ -522,7 +545,7 @@
           hideError();
 
           // Clear chart for new session
-          pingValues = [];
+          // pingValues = []; // Removed
           chart.data.labels = [];
           chart.data.datasets[0].data = [];
           chart.update();
@@ -581,14 +604,16 @@
             return;
           }
 
-          if (data.ping !== undefined) {
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
+          const now = new Date();
+          const timeString = now.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          });
 
+          let updated = false;
+
+          if (data.ping !== undefined) {
             addDataPoint(timeString, data.ping);
             updateStats();
             lastReceivedTime = Date.now();
@@ -597,12 +622,23 @@
             const newColor = darkMode
               ? "rgba(75, 192, 255, 1)"
               : "rgba(75, 192, 192, 1)";
-            document.getElementById("currentPing").style.color =
-              newColor;
-            chart.update();
+            document.getElementById("currentPing").style.color = newColor;
+            updated = true;
           }
+
+          if (data.speed !== undefined) {
+            document.getElementById("downloadSpeed").textContent = formatSpeed(
+              data.speed.rx,
+            );
+            document.getElementById("uploadSpeed").textContent = formatSpeed(
+              data.speed.tx,
+            );
+            // No graph update for speed
+          }
+
+          if (updated) chart.update();
         } catch (e) {
-          console.error("Error processing ping data:", e);
+          console.error("Error processing data:", e);
         }
       };
 

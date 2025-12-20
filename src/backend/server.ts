@@ -94,6 +94,83 @@ function stopPing() {
   }
 }
 
+let speedInterval: number | undefined;
+let previousRx = 0;
+let previousTx = 0;
+let previousTime = 0;
+
+async function getNetworkStats(): Promise<{ rx: number; tx: number }> {
+  try {
+    const data = await Deno.readTextFile("/proc/net/dev");
+    const lines = data.split("\n");
+    let totalRx = 0;
+    let totalTx = 0;
+
+    for (let i = 2; i < lines.length; i++) {
+      const line = lines[i].trim();
+      if (!line) continue;
+      // Replace colon with space to handle "eth0:123" and "eth0: 123" uniformly
+      const parts = line.replace(/:/g, " ").trim().split(/\s+/);
+
+      if (parts[0].startsWith("lo")) continue; // Skip loopback
+
+      // parts[0] is name, parts[1] is rx_bytes, parts[9] is tx_bytes
+      const rx = parseInt(parts[1]);
+      const tx = parseInt(parts[9]);
+
+      if (!isNaN(rx)) totalRx += rx;
+      if (!isNaN(tx)) totalTx += tx;
+    }
+    return { rx: totalRx, tx: totalTx };
+  } catch (e) {
+    console.error("Error reading network stats:", e);
+    return { rx: 0, tx: 0 };
+  }
+}
+
+async function startSpeedSession(socket: WebSocket) {
+  stopSpeedSession();
+
+  const stats = await getNetworkStats();
+  previousRx = stats.rx;
+  previousTx = stats.tx;
+  previousTime = Date.now();
+
+  speedInterval = setInterval(async () => {
+    if (socket.readyState !== WebSocket.OPEN) {
+      stopSpeedSession();
+      return;
+    }
+
+    const currentStats = await getNetworkStats();
+    const currentTime = Date.now();
+    const timeDiff = (currentTime - previousTime) / 1000; // seconds
+
+    if (timeDiff > 0) {
+      const rxSpeed = Math.max(0, (currentStats.rx - previousRx) / timeDiff);
+      const txSpeed = Math.max(0, (currentStats.tx - previousTx) / timeDiff);
+
+      socket.send(JSON.stringify({
+        speed: {
+          rx: rxSpeed,
+          tx: txSpeed,
+        },
+      }));
+
+      previousRx = currentStats.rx;
+      previousTx = currentStats.tx;
+      previousTime = currentTime;
+    }
+  }, 1000);
+}
+
+function stopSpeedSession() {
+  if (speedInterval) {
+    clearInterval(speedInterval);
+    speedInterval = undefined;
+  }
+}
+
 if (import.meta.main) {
   Deno.serve({
     port: 0,
@@ -113,6 +190,7 @@ if (import.meta.main) {
         console.log("WebSocket connection opened");
         // Start default ping
         startPingSession(socket, currentHost);
+        startSpeedSession(socket);
       });
 
       socket.addEventListener("message", (event) => {
@@ -134,6 +212,7 @@ if (import.meta.main) {
       socket.addEventListener("close", () => {
         console.log("WebSocket connection closed");
         stopPing();
+        stopSpeedSession();
       });
 
       return response;
