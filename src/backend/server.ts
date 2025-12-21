@@ -66,15 +66,15 @@ function startPingSession(socket: WebSocket, host: string) {
 
   // Handle process exit
   process.status.then((status) => {
-    if (
-      process === currentProcess && !status.success && status.code !== 0 &&
-      status.signal === null
-    ) {
-      // It exited with error, and wasn't killed by us (signal would be set if we killed it usually, though Deno's kill might differ, checking currentProcess is safer)
-      if (socket.readyState === WebSocket.OPEN) {
-        // Only send generic exit error if we haven't likely sent a specific stderr one, or just generic.
-        // For now, let's rely on stderr for specific text, or just say it exited.
-        // socket.send(JSON.stringify({ type: "error", message: "Ping process exited unexpectedly." }));
+    if (process === currentProcess) {
+      // Process exited unexpectedly (not killed by stopPing)
+      if (!status.success) {
+        console.log("Ping process exited unexpectedly, retrying in 2s...");
+        if (socket.readyState === WebSocket.OPEN) {
+          retryTimeout = setTimeout(() => {
+            startPingSession(socket, host);
+          }, 2000);
+        }
       }
     }
   });
@@ -82,6 +82,7 @@ function startPingSession(socket: WebSocket, host: string) {
 
 let currentProcess: Deno.ChildProcess | null = null;
 let currentHost = "1.1.1.1";
+let retryTimeout: number | undefined;
 
 function stopPing() {
   if (currentProcess) {
@@ -91,6 +92,10 @@ function stopPing() {
       // Ignore
     }
     currentProcess = null;
+  }
+  if (retryTimeout) {
+    clearTimeout(retryTimeout);
+    retryTimeout = undefined;
   }
 }
 
