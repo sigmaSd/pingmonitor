@@ -199,7 +199,7 @@ if (import.meta.main) {
 
         // Send network info
         try {
-          const publicIpRes = await fetch("https://ip.sigmasd.workers.dev/");
+          const publicIpRes = await fetch("https://ip.sigmasd.workers.dev/api");
           const publicIpData = await publicIpRes.json();
           const interfaces = Deno.networkInterfaces();
 
