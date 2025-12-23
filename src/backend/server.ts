@@ -176,6 +176,127 @@ function stopSpeedSession() {
   }
 }
 
+let networkWatcher: Deno.ChildProcess | null = null;
+let networkDebounceTimer: number | undefined;
+
+async function sendNetworkInfo(socket: WebSocket) {
+  if (socket.readyState !== WebSocket.OPEN) return;
+
+  try {
+    const interfaces = Deno.networkInterfaces().filter((i) =>
+      i.family === "IPv4" && !i.address.startsWith("127.")
+    );
+
+    // 1. Send local info immediately (it's always available)
+    socket.send(JSON.stringify({
+      type: "networkInfo",
+      publicIp: "Updating...",
+      interfaces,
+    }));
+
+    // 2. Fetch public IP in background
+    (async () => {
+      // Create a fresh client to bypass connection pooling and force new DNS/TCP lookup
+      // This is critical for VPN switching where the old connection becomes invalid
+      const client = Deno.createHttpClient({});
+      try {
+        const res = await fetch(
+          `https://ip.sigmasd.workers.dev/api?t=${Date.now()}`,
+          { client },
+        );
+        const data = await res.json();
+
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: "networkInfo",
+            publicIp: data.ip,
+            interfaces,
+          }));
+        }
+      } catch (e) {
+        if (socket.readyState === WebSocket.OPEN) {
+          socket.send(JSON.stringify({
+            type: "networkInfo",
+            publicIp: "Error",
+            interfaces,
+          }));
+        }
+      } finally {
+        try {
+          client.close();
+        } catch { /* ignore */ }
+      }
+    })();
+  } catch (e) {
+    console.error("Error in sendNetworkInfo:", e);
+  }
+}
+
+function startNetworkWatcher(socket: WebSocket) {
+  stopNetworkWatcher();
+
+  const cmd = new Deno.Command("ip", {
+    args: ["monitor"],
+    stdout: "piped",
+    stderr: "piped",
+  });
+
+  networkWatcher = cmd.spawn();
+  const process = networkWatcher;
+
+  // Handle process exit
+  process.status.then((status) => {
+    if (process === networkWatcher && !status.success) {
+      console.error(`Network watcher exited with code ${status.code}`);
+    }
+  });
+
+  (async () => {
+    try {
+      const stream = process.stdout.pipeThrough(new TextDecoderStream());
+      for await (const chunk of stream) {
+        if (process !== networkWatcher) break;
+
+        if (chunk.trim().length > 0) {
+          // Debounce the update to avoid spamming during connection changes
+          if (networkDebounceTimer) clearTimeout(networkDebounceTimer);
+          networkDebounceTimer = setTimeout(() => {
+            sendNetworkInfo(socket);
+          }, 2000); // Wait 2s for connection to settle
+        }
+      }
+    } catch (e) {
+      console.error("Error in network watcher stream:", e);
+    }
+  })();
+
+  // Also log stderr
+  (async () => {
+    try {
+      const stream = process.stderr.pipeThrough(new TextDecoderStream());
+      for await (const chunk of stream) {
+        if (process !== networkWatcher) break;
+        console.error("Network watcher stderr:", chunk);
+      }
+    } catch (_e) { /* ignore */ }
+  })();
+}
+
+function stopNetworkWatcher() {
+  if (networkWatcher) {
+    try {
+      networkWatcher.kill();
+    } catch (_e) {
+      // Ignore
+    }
+    networkWatcher = null;
+  }
+  if (networkDebounceTimer) {
+    clearTimeout(networkDebounceTimer);
+    networkDebounceTimer = undefined;
+  }
+}
+
 if (import.meta.main) {
   Deno.serve({
     port: 0,
@@ -197,22 +318,10 @@ if (import.meta.main) {
         startPingSession(socket, currentHost);
         startSpeedSession(socket);
 
-        // Send network info
-        try {
-          const publicIpRes = await fetch("https://ip.sigmasd.workers.dev/api");
-          const publicIpData = await publicIpRes.json();
-          const interfaces = Deno.networkInterfaces();
-
-          socket.send(JSON.stringify({
-            type: "networkInfo",
-            publicIp: publicIpData.ip,
-            interfaces: interfaces.filter((i) =>
-              i.family === "IPv4" && !i.address.startsWith("127.")
-            ),
-          }));
-        } catch (e) {
-          console.error("Failed to fetch network info:", e);
-        }
+        // Initial network info
+        await sendNetworkInfo(socket);
+        // Start watching for changes
+        startNetworkWatcher(socket);
       });
 
       socket.addEventListener("message", (event) => {
@@ -235,6 +344,7 @@ if (import.meta.main) {
         console.log("WebSocket connection closed");
         stopPing();
         stopSpeedSession();
+        stopNetworkWatcher();
       });
 
       return response;
