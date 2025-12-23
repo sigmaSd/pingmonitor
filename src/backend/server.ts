@@ -179,7 +179,7 @@ function stopSpeedSession() {
 let networkWatcher: Deno.ChildProcess | null = null;
 let networkDebounceTimer: number | undefined;
 
-async function sendNetworkInfo(socket: WebSocket) {
+function sendNetworkInfo(socket: WebSocket) {
   if (socket.readyState !== WebSocket.OPEN) return;
 
   try {
@@ -213,7 +213,7 @@ async function sendNetworkInfo(socket: WebSocket) {
             interfaces,
           }));
         }
-      } catch (e) {
+      } catch {
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "networkInfo",
@@ -236,7 +236,7 @@ function startNetworkWatcher(socket: WebSocket) {
   stopNetworkWatcher();
 
   const cmd = new Deno.Command("ip", {
-    args: ["monitor"],
+    args: ["monitor", "address", "route"],
     stdout: "piped",
     stderr: "piped",
   });
@@ -312,14 +312,14 @@ if (import.meta.main) {
 
       console.log("New WebSocket connection");
 
-      socket.addEventListener("open", async () => {
+      socket.addEventListener("open", () => {
         console.log("WebSocket connection opened");
         // Start default ping
         startPingSession(socket, currentHost);
         startSpeedSession(socket);
 
         // Initial network info
-        await sendNetworkInfo(socket);
+        sendNetworkInfo(socket);
         // Start watching for changes
         startNetworkWatcher(socket);
       });
