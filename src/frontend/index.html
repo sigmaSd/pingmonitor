@@ -257,6 +257,16 @@
         align-items: center;
         gap: 0.5rem;
       }
+      .network-item span:last-child {
+        cursor: pointer;
+        transition: all 0.2s;
+        padding: 2px 4px;
+        border-radius: 4px;
+      }
+      .network-item span:last-child:hover {
+        background-color: var(--toggle-bg);
+        color: var(--chart-border);
+      }
       .network-label {
         font-weight: 600;
         color: var(--chart-border);
@@ -319,11 +329,11 @@
     <div class="network-bar">
       <div class="network-item">
         <span class="network-label">Public IP:</span>
-        <span id="publicIp">Loading...</span>
+        <span id="publicIp" title="Click to copy">Loading...</span>
       </div>
       <div class="network-item">
         <span class="network-label">Local IP:</span>
-        <span id="localIp">Loading...</span>
+        <span id="localIp" title="Click to copy">Loading...</span>
       </div>
     </div>
 
@@ -343,6 +353,34 @@
       const updateHostBtn = document.getElementById("updateHostBtn");
       const pauseBtn = document.getElementById("pauseBtn");
       const errorBanner = document.getElementById("errorBanner");
+      const publicIpEl = document.getElementById("publicIp");
+      const localIpEl = document.getElementById("localIp");
+
+      // Copy to clipboard helper
+      function copyWithFeedback(el) {
+        const originalText = el.textContent;
+        if (
+          originalText === "Loading..." || originalText === "Copied!"
+        ) return;
+
+        navigator.clipboard.writeText(originalText).then(() => {
+          el.textContent = "Copied!";
+          el.style.color = "#4CAF50";
+          setTimeout(() => {
+            el.textContent = originalText;
+            el.style.color = "";
+          }, 1000);
+        });
+      }
+
+      publicIpEl.addEventListener(
+        "click",
+        () => copyWithFeedback(publicIpEl),
+      );
+      localIpEl.addEventListener(
+        "click",
+        () => copyWithFeedback(localIpEl),
+      );
 
       // let pingValues = [];
       const MAX_DATA_POINTS = 60;
