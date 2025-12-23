@@ -191,11 +191,28 @@ if (import.meta.main) {
 
       console.log("New WebSocket connection");
 
-      socket.addEventListener("open", () => {
+      socket.addEventListener("open", async () => {
         console.log("WebSocket connection opened");
         // Start default ping
         startPingSession(socket, currentHost);
         startSpeedSession(socket);
+
+        // Send network info
+        try {
+          const publicIpRes = await fetch("https://ip.sigmasd.workers.dev/");
+          const publicIpData = await publicIpRes.json();
+          const interfaces = Deno.networkInterfaces();
+
+          socket.send(JSON.stringify({
+            type: "networkInfo",
+            publicIp: publicIpData.ip,
+            interfaces: interfaces.filter((i) =>
+              i.family === "IPv4" && !i.address.startsWith("127.")
+            ),
+          }));
+        } catch (e) {
+          console.error("Failed to fetch network info:", e);
+        }
       });
 
       socket.addEventListener("message", (event) => {

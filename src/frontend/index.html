@@ -240,6 +240,27 @@
           right: 0.5rem;
         }
       }
+
+      .network-bar {
+        display: flex;
+        justify-content: flex-start;
+        align-items: center;
+        padding: 0.5rem 1.5rem;
+        background-color: var(--bg-color);
+        font-size: 0.85rem;
+        gap: 1.5rem;
+        flex-shrink: 0;
+        opacity: 0.8;
+      }
+      .network-item {
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+      }
+      .network-label {
+        font-weight: 600;
+        color: var(--chart-border);
+      }
     </style>
   </head>
   <body>
@@ -294,6 +315,17 @@
         ☀️
       </button>
     </header>
+
+    <div class="network-bar">
+      <div class="network-item">
+        <span class="network-label">Public IP:</span>
+        <span id="publicIp">Loading...</span>
+      </div>
+      <div class="network-item">
+        <span class="network-label">Local IP:</span>
+        <span id="localIp">Loading...</span>
+      </div>
+    </div>
 
     <div id="errorBanner" class="error-banner"></div>
 
@@ -604,6 +636,22 @@
 
         try {
           const data = JSON.parse(event.data);
+
+          if (data.type === "networkInfo") {
+            document.getElementById("publicIp").textContent =
+              data.publicIp || "Unknown";
+
+            if (data.interfaces && data.interfaces.length > 0) {
+              const infos = data.interfaces.map((i) =>
+                `${i.address} (${i.name})`
+              ).join(", ");
+              document.getElementById("localIp").textContent = infos;
+            } else {
+              document.getElementById("localIp").textContent =
+                "Unknown";
+            }
+            return;
+          }
 
           if (data.type === "error") {
             showError(data.message);
