@@ -199,11 +199,16 @@ function sendNetworkInfo(socket: WebSocket) {
       // Create a fresh client to bypass connection pooling and force new DNS/TCP lookup
       // This is critical for VPN switching where the old connection becomes invalid
       const client = Deno.createHttpClient({});
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+
       try {
         const res = await fetch(
           `https://ip.sigmasd.workers.dev/api?t=${Date.now()}`,
-          { client },
+          { client, signal: controller.signal },
         );
+        clearTimeout(timeoutId);
+
         const data = await res.json();
 
         if (socket.readyState === WebSocket.OPEN) {
@@ -214,12 +219,20 @@ function sendNetworkInfo(socket: WebSocket) {
           }));
         }
       } catch {
+        clearTimeout(timeoutId); // Ensure timer is cleared on error too
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "networkInfo",
             publicIp: "Error",
             interfaces,
           }));
+
+          // Retry after 5 seconds if connection is still valid
+          setTimeout(() => {
+            if (socket.readyState === WebSocket.OPEN) {
+              sendNetworkInfo(socket);
+            }
+          }, 5000);
         }
       } finally {
         try {
