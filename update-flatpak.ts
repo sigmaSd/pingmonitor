@@ -19,7 +19,7 @@ $.setPrintCommand(true);
 
 if (!Deno.args.includes("--skip-tag")) {
   // tag it and push
-  await $`git status && git add -A && git commit -m ${version}`;
+  await $`git status && git add -A && git commit -m ${version}`.noThrow();
   await $`git tag -a ${version} -m ${version}`;
   await $`git push --follow-tags`;
 }
