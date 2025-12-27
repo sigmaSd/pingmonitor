@@ -204,17 +204,20 @@ function sendNetworkInfo(socket: WebSocket) {
 
       try {
         const res = await fetch(
-          `https://ip.sigmasd.workers.dev/api?t=${Date.now()}`,
+          `https://www.cloudflare.com/cdn-cgi/trace`,
           { client, signal: controller.signal },
         );
         clearTimeout(timeoutId);
 
-        const data = await res.json();
+        const data = await res.text();
+        const ip = data.split("\n")
+          .find((line) => line.startsWith("ip="))
+          ?.split("=")[1];
 
         if (socket.readyState === WebSocket.OPEN) {
           socket.send(JSON.stringify({
             type: "networkInfo",
-            publicIp: data.ip,
+            publicIp: ip,
             interfaces,
           }));
         }
