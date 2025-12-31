@@ -6,6 +6,10 @@ frontend with a Chart.js graph.
 
 ![image](./distro/demo-init.png)
 
+## Downloads
+
+<a href='https://flathub.org/en/apps/io.github.sigmasd.pingmonitor'><img width='240' alt='Download on Flathub' src='https://flathub.org/assets/badges/flathub-badge-en.png'/></a>
+
 ## Running the Application
 
 To run the application, simply execute the WebView script:
