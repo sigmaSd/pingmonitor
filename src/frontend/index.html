@@ -187,30 +187,6 @@
         height: 100%;
       }
 
-      .theme-toggle {
-        cursor: pointer;
-        font-size: 1.1rem;
-        background: none;
-        border: none;
-        width: 36px;
-        height: 36px;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        transition: all 0.2s ease;
-        outline: none;
-        background-color: var(--toggle-bg);
-        color: var(--text-color);
-        margin-left: 1rem;
-      }
-
-      .theme-toggle:hover {
-        background-color: var(--chart-border);
-        color: white;
-        transform: scale(1.05);
-      }
-
       @media (max-width: 800px) {
         .top-bar {
           flex-wrap: wrap;
@@ -232,12 +208,6 @@
           padding-top: 10px;
           border-top: 1px solid var(--header-border);
           margin-left: 0;
-        }
-        .theme-toggle {
-          order: 3;
-          position: absolute;
-          top: 0.5rem;
-          right: 0.5rem;
         }
       }
 
@@ -316,14 +286,6 @@
           <span class="stat-value" id="uploadSpeed">--</span>
         </div>
       </div>
-
-      <button
-        class="theme-toggle"
-        id="themeToggle"
-        title="Toggle dark/light mode"
-      >
-        ☀️
-      </button>
     </header>
 
     <div class="network-bar">
@@ -348,7 +310,6 @@
     <script>
       const ws = new WebSocket("ws://" + window.location.host);
       const ctx = document.getElementById("pingChart").getContext("2d");
-      const themeToggle = document.getElementById("themeToggle");
       const hostInput = document.getElementById("hostInput");
       const updateHostBtn = document.getElementById("updateHostBtn");
       const pauseBtn = document.getElementById("pauseBtn");
@@ -391,50 +352,6 @@
       let lastReceivedTime = Date.now();
       const PING_INTERVAL = 1000;
       let currentHost = "1.1.1.1";
-
-      // Theme logic
-      const isWebview = typeof window.getInitialTheme === "function";
-      let darkMode = window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches;
-
-      async function initializeTheme() {
-        if (isWebview) {
-          try {
-            const savedTheme = await window.getInitialTheme();
-            if (savedTheme) darkMode = savedTheme === "dark";
-          } catch (e) {
-            console.error(e);
-          }
-        } else {
-          const savedTheme = localStorage.getItem("theme");
-          if (savedTheme) darkMode = savedTheme === "dark";
-        }
-        applyTheme();
-      }
-
-      function applyTheme() {
-        document.documentElement.classList.toggle(
-          "dark-theme",
-          darkMode,
-        );
-        themeToggle.textContent = darkMode ? "🌙" : "☀️";
-        updateChartTheme();
-      }
-
-      initializeTheme();
-
-      themeToggle.addEventListener("click", () => {
-        darkMode = !darkMode;
-        const themeValue = darkMode ? "dark" : "light";
-        if (isWebview) {
-          try {
-            window.saveTheme(themeValue);
-          } catch (e) {}
-        } else {
-          localStorage.setItem("theme", themeValue);
-        }
-        applyTheme();
-      });
 
       // Chart setup
       const chart = new Chart(ctx, {
@@ -508,6 +425,31 @@
           },
         },
       });
+
+      // Theme logic
+      let darkMode = window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches;
+
+      function applyTheme() {
+        document.documentElement.classList.toggle(
+          "dark-theme",
+          darkMode,
+        );
+        updateChartTheme();
+      }
+
+      applyTheme();
+
+      // Listen for system theme changes
+      if (window.matchMedia) {
+        window.matchMedia("(prefers-color-scheme: dark)").addEventListener(
+          "change",
+          (e) => {
+            darkMode = e.matches;
+            applyTheme();
+          },
+        );
+      }
 
       function updateChartTheme() {
         const gridColor = darkMode
