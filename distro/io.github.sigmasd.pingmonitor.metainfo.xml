@@ -35,6 +35,11 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.9.4" date="2026-01-16">
+      <description>
+        <p>Fix ping parsing on non english desktops</p>
+      </description>
+    </release>
     <release version="0.9.3" date="2026-01-16">
       <description>
         <p>Follow system theme</p>

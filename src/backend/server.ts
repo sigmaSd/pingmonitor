@@ -8,6 +8,9 @@ function startPingSession(socket: WebSocket, host: string) {
     args: [host],
     stdout: "piped",
     stderr: "piped",
+    env: {
+      LC_ALL: "C",
+    },
   });
 
   const process = cmd.spawn();
@@ -253,6 +256,9 @@ function startNetworkWatcher(socket: WebSocket) {
     args: ["monitor", "address", "route"],
     stdout: "piped",
     stderr: "piped",
+    env: {
+      LC_ALL: "C",
+    },
   });
 
   networkWatcher = cmd.spawn();
