@@ -10,7 +10,7 @@
   },
   "imports": {
     "@sigma/deno-compile-extra": "jsr:@sigma/deno-compile-extra@^0.12.1",
-    "@sigmasd/adw-app": "jsr:@sigmasd/adw-app@^0.1.3",
+    "@sigmasd/gtk": "jsr:@sigmasd/gtk@^0.13.1",
     "@webview/webview": "jsr:@webview/webview@^0.9.0"
   },
   "exclude": [
