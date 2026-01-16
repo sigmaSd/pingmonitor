@@ -1,7 +1,5 @@
 #!/usr/bin/env -S deno run --allow-all
 import { SizeHint, Webview } from "@webview/webview";
-import "@sigma/deno-compile-extra/fetchPatch";
-import "@sigma/deno-compile-extra/localStoragePolyfill";
 import { Application, ApplicationWindow } from "@sigmasd/gtk/gtk";
 
 function waitForPort(worker: Worker) {

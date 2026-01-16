@@ -442,13 +442,14 @@
 
       // Listen for system theme changes
       if (window.matchMedia) {
-        window.matchMedia("(prefers-color-scheme: dark)").addEventListener(
-          "change",
-          (e) => {
-            darkMode = e.matches;
-            applyTheme();
-          },
-        );
+        window.matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener(
+            "change",
+            (e) => {
+              darkMode = e.matches;
+              applyTheme();
+            },
+          );
       }
 
       function updateChartTheme() {

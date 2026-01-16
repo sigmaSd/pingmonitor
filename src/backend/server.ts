@@ -1,8 +1,6 @@
 #!/usr/bin/env -S deno run --allow-net --allow-read --allow-run
 /// <reference lib="deno.worker" />
 
-import "@sigma/deno-compile-extra/fetchPatch";
-
 function startPingSession(socket: WebSocket, host: string) {
   stopPing();
 
