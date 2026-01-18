@@ -35,6 +35,15 @@
   <content_rating type="oars-1.1" />
 
   <releases>
+    <release version="0.9.5" date="2026-01-18">
+      <description>
+        <p>Improve UI stability and prevent layout jumping</p>
+        <p>Fix initial white screen by hiding window until fully loaded</p>
+        <p>Eliminate dark mode white flash on startup</p>
+        <p>Fix cursor and text selection on non-editable stats</p>
+        <p>Improve responsive layout for smaller windows</p>
+      </description>
+    </release>
     <release version="0.9.4" date="2026-01-16">
       <description>
         <p>Fix ping parsing on non english desktops</p>

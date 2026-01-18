@@ -23,9 +23,11 @@ if (import.meta.main) {
     const window = new ApplicationWindow(app);
     window.setTitle("Ping Monitor");
     window.setDefaultSize(1000, 600);
-    window.setVisible(true);
 
     const webview = new Webview(false, undefined, window.ptr);
+    webview.bind("show_app", () => {
+      window.setVisible(true);
+    });
     webview.title = "Ping Monitor";
     webview.size = { width: 1000, height: 600, hint: SizeHint.NONE };
 

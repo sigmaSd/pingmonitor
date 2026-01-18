@@ -35,6 +35,12 @@
         --input-border: #444444;
       }
 
+      /* Pre-apply dark background to body to ensure immediate effect */
+      html.dark-theme body {
+        background-color: #121212;
+        color: #e0e0e0;
+      }
+
       * {
         box-sizing: border-box;
       }
@@ -151,15 +157,19 @@
 
       .stats-container {
         display: flex;
-        gap: 1.5rem;
+        gap: 1rem;
         font-size: 0.9rem;
         margin-left: auto;
+        flex-shrink: 0;
       }
 
       .stat-box {
         display: flex;
         align-items: center;
         gap: 6px;
+        cursor: default;
+        user-select: none;
+        white-space: nowrap;
       }
 
       .stat-label {
@@ -170,7 +180,9 @@
       .stat-value {
         font-weight: 600;
         font-family: "Consolas", "Monaco", monospace;
-        font-size: 1.2rem;
+        font-size: 1.1rem;
+        min-width: 4.5rem;
+        text-align: right;
       }
 
       .chart-area {
@@ -187,7 +199,7 @@
         height: 100%;
       }
 
-      @media (max-width: 800px) {
+      @media (max-width: 950px) {
         .top-bar {
           flex-wrap: wrap;
           padding: 0.5rem;
@@ -242,6 +254,14 @@
         color: var(--chart-border);
       }
     </style>
+    <script>
+      if (
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      ) {
+        document.documentElement.classList.add("dark-theme");
+      }
+    </script>
   </head>
   <body>
     <header class="top-bar">
@@ -715,6 +735,11 @@
           }
         }
       }, PING_INTERVAL);
+
+      window.addEventListener("load", () => {
+        // @ts-ignore
+        if (typeof show_app === "function") show_app();
+      });
     </script>
   </body>
 </html>
