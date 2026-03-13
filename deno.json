@@ -9,7 +9,7 @@
     }
   },
   "imports": {
-    "@sigmasd/gtk": "jsr:@sigmasd/gtk@^0.13.1",
+    "@sigmasd/gtk": "jsr:@sigmasd/gtk@^0.49.0",
     "@webview/webview": "jsr:@webview/webview@^0.9.0"
   },
   "exclude": [

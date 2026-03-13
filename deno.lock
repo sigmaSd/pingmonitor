@@ -8,7 +8,8 @@
     "jsr:@david/which@~0.4.1": "0.4.1",
     "jsr:@denosaurs/plug@1": "1.0.6",
     "jsr:@libs/xml@7.0.2": "7.0.2",
-    "jsr:@sigmasd/gtk@~0.13.1": "0.13.1",
+    "jsr:@sigma/deno-compat@0.22.0": "0.22.0",
+    "jsr:@sigmasd/gtk@0.49": "0.49.0",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/bytes@^1.0.5": "1.0.6",
     "jsr:@std/encoding@0.221": "0.221.0",
@@ -69,8 +70,14 @@
     "@libs/xml@7.0.2": {
       "integrity": "b0f8eb46328cdfc443e89eeb02dce2a9022c292c6342f2cbddcad8cf06cd5adf"
     },
-    "@sigmasd/gtk@0.13.1": {
-      "integrity": "6a9535c7ee0c40bae7778d4cddfd441b4490674b4cd8e32f250e561e7f93ba34"
+    "@sigma/deno-compat@0.22.0": {
+      "integrity": "a7e38065b8cf8918b0c2d7c6bce8ffe29086055fd67b4bed52b60c8a127391bd"
+    },
+    "@sigmasd/gtk@0.49.0": {
+      "integrity": "1936dfae8fe66de60b90055fc7fd729422be6bf15e6881b349c93e833740dab1",
+      "dependencies": [
+        "jsr:@sigma/deno-compat"
+      ]
     },
     "@std/assert@0.221.0": {
       "integrity": "a5f1aa6e7909dbea271754fd4ab3f4e687aeff4873b4cef9a320af813adb489a"
@@ -142,7 +149,7 @@
   },
   "workspace": {
     "dependencies": [
-      "jsr:@sigmasd/gtk@~0.13.1",
+      "jsr:@sigmasd/gtk@0.49",
       "jsr:@webview/webview@0.9"
     ]
   }

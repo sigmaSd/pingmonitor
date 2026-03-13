@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Ping Graph</title>
+    <title>Ping Monitor</title>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="./assets/material-symbols.css" />
     <style>
@@ -19,6 +19,9 @@
         --header-border: #e0e0e0;
         --input-bg: #ffffff;
         --input-border: #cccccc;
+        --error-color: #ff5252;
+        --modal-bg: #ffffff;
+        --modal-overlay: rgba(0, 0, 0, 0.5);
       }
 
       :root.dark-theme {
@@ -33,9 +36,11 @@
         --header-border: #333333;
         --input-bg: #2d2d2d;
         --input-border: #444444;
+        --error-color: #ff6b6b;
+        --modal-bg: #2d2d2d;
+        --modal-overlay: rgba(0, 0, 0, 0.7);
       }
 
-      /* Pre-apply dark background to body to ensure immediate effect */
       html.dark-theme body {
         background-color: #121212;
         color: #e0e0e0;
@@ -72,32 +77,19 @@
         gap: 1rem;
       }
 
-      .error-banner {
-        background-color: #ff5252;
-        color: white;
-        padding: 0.5rem 1.5rem;
-        text-align: center;
-        font-weight: 500;
-        display: none;
-        flex-shrink: 0;
-        animation: slideDown 0.3s ease-out;
-      }
-
-      @keyframes slideDown {
-        from {
-          transform: translateY(-100%);
-        }
-        to {
-          transform: translateY(0);
-        }
-      }
-
       .controls-area {
         display: flex;
         align-items: center;
         gap: 0.5rem;
         flex-grow: 1;
         max-width: 600px;
+      }
+
+      .host-input-group {
+        position: relative;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
       }
 
       .host-input {
@@ -108,7 +100,7 @@
         color: var(--text-color);
         font-family: inherit;
         font-size: 0.9rem;
-        width: 180px;
+        width: 200px;
         outline: none;
         transition: border-color 0.2s;
       }
@@ -122,7 +114,7 @@
         color: var(--text-color);
         border: none;
         border-radius: 6px;
-        padding: 0.4rem; /* Adjusted for icons */
+        padding: 0.4rem;
         cursor: pointer;
         transition: all 0.2s;
         display: flex;
@@ -137,15 +129,8 @@
         color: white;
       }
 
-      .control-btn .material-symbols-outlined {
-        font-size: 20px;
-      }
-
-      #updateHostBtn {
-        display: none; /* Hidden by default */
-        font-weight: 600;
-        padding: 0 0.8rem;
-        width: auto;
+      .control-btn.secondary:hover {
+        background-color: #666;
       }
 
       .divider {
@@ -191,6 +176,7 @@
         width: 100%;
         padding: 1rem;
         min-height: 300px;
+        max-height: 60vh;
       }
 
       .chart-wrapper {
@@ -199,28 +185,64 @@
         height: 100%;
       }
 
-      @media (max-width: 950px) {
-        .top-bar {
-          flex-wrap: wrap;
-          padding: 0.5rem;
-        }
-        .controls-area {
-          order: 1;
-          width: 100%;
-          max-width: none;
-          justify-content: space-between;
-        }
-        .host-input {
-          width: 100%;
-        }
-        .stats-container {
-          order: 2;
-          width: 100%;
-          justify-content: space-between;
-          padding-top: 10px;
-          border-top: 1px solid var(--header-border);
-          margin-left: 0;
-        }
+      .monitor-list-area {
+        padding: 1rem 1.5rem;
+        background-color: var(--bg-color);
+        flex-grow: 1;
+        overflow-y: auto;
+      }
+
+      .monitor-table {
+        width: 100%;
+        border-collapse: collapse;
+        font-size: 0.9rem;
+      }
+
+      .monitor-table th {
+        text-align: left;
+        padding: 0.5rem;
+        color: var(--text-color);
+        opacity: 0.6;
+        font-weight: 500;
+        border-bottom: 1px solid var(--header-border);
+      }
+
+      .monitor-table td {
+        padding: 0.75rem 0.5rem;
+        border-bottom: 1px solid var(--header-border);
+        vertical-align: middle;
+      }
+
+      .color-dot {
+        width: 12px;
+        height: 12px;
+        border-radius: 50%;
+        display: inline-block;
+      }
+
+      .host-cell {
+        font-weight: 600;
+      }
+
+      .host-sub {
+        font-size: 0.8em;
+        opacity: 0.7;
+        margin-left: 0.5rem;
+        font-weight: normal;
+      }
+
+      .remove-btn {
+        color: var(--error-color);
+        background: transparent;
+        border: none;
+        cursor: pointer;
+        padding: 4px;
+        border-radius: 4px;
+        display: flex;
+        align-items: center;
+      }
+      .remove-btn:hover {
+        background-color: rgba(255, 82, 82, 0.1);
       }
 
       .network-bar {
@@ -233,25 +255,120 @@
         gap: 1.5rem;
         flex-shrink: 0;
         opacity: 0.8;
+        border-top: 1px solid var(--header-border);
       }
       .network-item {
         display: flex;
         align-items: center;
         gap: 0.5rem;
       }
-      .network-item span:last-child {
-        cursor: pointer;
-        transition: all 0.2s;
-        padding: 2px 4px;
-        border-radius: 4px;
-      }
-      .network-item span:last-child:hover {
-        background-color: var(--toggle-bg);
-        color: var(--chart-border);
-      }
       .network-label {
         font-weight: 600;
         color: var(--chart-border);
+      }
+
+      /* Modal */
+      .modal {
+        display: none;
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: var(--modal-overlay);
+        z-index: 100;
+        justify-content: center;
+        align-items: center;
+      }
+      .modal.open {
+        display: flex;
+      }
+      .modal-content {
+        background-color: var(--modal-bg);
+        padding: 1.5rem;
+        border-radius: 8px;
+        width: 400px;
+        max-width: 90%;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+      }
+      .modal-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: 1rem;
+      }
+      .modal-title {
+        font-size: 1.2rem;
+        font-weight: 600;
+      }
+      .close-modal {
+        background: none;
+        border: none;
+        cursor: pointer;
+        color: var(--text-color);
+        opacity: 0.6;
+      }
+      .close-modal:hover {
+        opacity: 1;
+      }
+
+      .bookmark-list {
+        max-height: 300px;
+        overflow-y: auto;
+        margin-bottom: 1rem;
+      }
+      .bookmark-item {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.5rem;
+        border-bottom: 1px solid var(--header-border);
+      }
+      .bookmark-item:last-child {
+        border-bottom: none;
+      }
+      .bookmark-info {
+        display: flex;
+        flex-direction: column;
+      }
+      .bookmark-ip {
+        font-weight: 600;
+      }
+      .bookmark-name {
+        font-size: 0.85rem;
+        opacity: 0.7;
+      }
+
+      .input-group {
+        display: flex;
+        gap: 0.5rem;
+        margin-top: 1rem;
+        flex-wrap: wrap;
+      }
+      .modal-input {
+        flex: 1;
+        min-width: 0; /* Allows inputs to shrink below default size */
+        padding: 0.5rem;
+        border-radius: 4px;
+        border: 1px solid var(--input-border);
+        background: var(--input-bg);
+        color: var(--text-color);
+      }
+
+      #saveBmBtn {
+        flex-shrink: 0;
+      }
+
+      @media (max-width: 400px) {
+        .modal-input {
+          flex-basis: 100%; /* Stack on very small screens */
+        }
+      }
+
+      /* Autocomplete suggestions */
+      datalist {
+        background-color: var(--input-bg);
+        color: var(--text-color);
       }
     </style>
     <script>
@@ -266,37 +383,34 @@
   <body>
     <header class="top-bar">
       <div class="controls-area">
-        <input
-          type="text"
-          id="hostInput"
-          value="1.1.1.1"
-          placeholder="Host/IP"
-          class="host-input"
-          spellcheck="false"
-        />
-        <button id="updateHostBtn" class="control-btn" title="Update Host">
-          Update
+        <div class="host-input-group">
+          <input
+            type="text"
+            id="hostInput"
+            placeholder="IP / Hostname"
+            class="host-input"
+            spellcheck="false"
+            list="savedHostsList"
+          />
+          <datalist id="savedHostsList"></datalist>
+          <button id="addHostBtn" class="control-btn" title="Add Monitor">
+            <span class="material-symbols-outlined">add</span>
+          </button>
+        </div>
+        <button
+          id="settingsBtn"
+          class="control-btn secondary"
+          title="Settings / Bookmarks"
+        >
+          <span class="material-symbols-outlined">settings</span>
         </button>
         <div class="divider"></div>
-        <button id="pauseBtn" class="control-btn" title="Pause/Resume">
+        <button id="pauseAllBtn" class="control-btn" title="Pause/Resume All">
           <span class="material-symbols-outlined">pause</span>
         </button>
       </div>
 
       <div class="stats-container">
-        <div class="stat-box">
-          <span class="stat-label">Current</span>
-          <span class="stat-value" id="currentPing">-- ms</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-label">Avg</span>
-          <span class="stat-value" id="avgPing">-- ms</span>
-        </div>
-        <div class="stat-box">
-          <span class="stat-label">Max</span>
-          <span class="stat-value" id="maxPing">-- ms</span>
-        </div>
-        <div class="divider"></div>
         <div class="stat-box">
           <span class="stat-label">↓</span>
           <span class="stat-value" id="downloadSpeed">--</span>
@@ -308,101 +422,182 @@
       </div>
     </header>
 
-    <div class="network-bar">
-      <div class="network-item">
-        <span class="network-label">Public IP:</span>
-        <span id="publicIp" title="Click to copy">Loading...</span>
-      </div>
-      <div class="network-item">
-        <span class="network-label">Local IP:</span>
-        <span id="localIp" title="Click to copy">Loading...</span>
-      </div>
-    </div>
-
-    <div id="errorBanner" class="error-banner"></div>
-
     <main class="chart-area">
       <div class="chart-wrapper">
         <canvas id="pingChart"></canvas>
       </div>
     </main>
 
+    <section class="monitor-list-area">
+      <table class="monitor-table">
+        <thead>
+          <tr>
+            <th style="width: 30px"></th>
+            <th>Host</th>
+            <th>Current</th>
+            <th>Avg</th>
+            <th>Max</th>
+            <th style="width: 50px"></th>
+          </tr>
+        </thead>
+        <tbody id="monitorTableBody">
+          <!-- Rows injected here -->
+        </tbody>
+      </table>
+    </section>
+
+    <div class="network-bar">
+      <div class="network-item">
+        <span class="network-label">Public IP:</span>
+        <span id="publicIp">Loading...</span>
+      </div>
+      <div class="network-item">
+        <span class="network-label">Local IP:</span>
+        <span id="localIp">Loading...</span>
+      </div>
+    </div>
+
+    <!-- Settings Modal -->
+    <div id="settingsModal" class="modal">
+      <div class="modal-content">
+        <div class="modal-header">
+          <span class="modal-title">Bookmarks</span>
+          <button class="close-modal" id="closeSettingsBtn">
+            <span class="material-symbols-outlined">close</span>
+          </button>
+        </div>
+        <div class="bookmark-list" id="bookmarkList">
+          <!-- Items injected here -->
+        </div>
+        <div
+          style="border-top: 1px solid var(--header-border); padding-top: 1rem"
+        >
+          <div
+            class="modal-title"
+            style="font-size: 1rem; margin-bottom: 0.5rem"
+          >
+            Add New Bookmark
+          </div>
+          <div class="input-group">
+            <input
+              type="text"
+              id="bmIpInput"
+              class="modal-input"
+              placeholder="IP Address"
+            >
+            <input
+              type="text"
+              id="bmNameInput"
+              class="modal-input"
+              placeholder="Nickname"
+            >
+            <button id="saveBmBtn" class="control-btn">
+              <span class="material-symbols-outlined">save</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <script>
       const ws = new WebSocket("ws://" + window.location.host);
       const ctx = document.getElementById("pingChart").getContext("2d");
+
+      // Elements
       const hostInput = document.getElementById("hostInput");
-      const updateHostBtn = document.getElementById("updateHostBtn");
-      const pauseBtn = document.getElementById("pauseBtn");
-      const errorBanner = document.getElementById("errorBanner");
-      const publicIpEl = document.getElementById("publicIp");
-      const localIpEl = document.getElementById("localIp");
+      const addHostBtn = document.getElementById("addHostBtn");
+      const pauseAllBtn = document.getElementById("pauseAllBtn");
+      const monitorTableBody = document.getElementById(
+        "monitorTableBody",
+      );
+      const settingsBtn = document.getElementById("settingsBtn");
+      const settingsModal = document.getElementById("settingsModal");
+      const closeSettingsBtn = document.getElementById(
+        "closeSettingsBtn",
+      );
+      const savedHostsList = document.getElementById("savedHostsList");
 
-      // Copy to clipboard helper
-      function copyWithFeedback(el) {
-        const originalText = el.textContent;
-        if (
-          originalText === "Loading..." || originalText === "Copied!"
-        ) return;
+      // Bookmark Elements
+      const bookmarkList = document.getElementById("bookmarkList");
+      const bmIpInput = document.getElementById("bmIpInput");
+      const bmNameInput = document.getElementById("bmNameInput");
+      const saveBmBtn = document.getElementById("saveBmBtn");
 
-        navigator.clipboard.writeText(originalText).then(() => {
-          el.textContent = "Copied!";
-          el.style.color = "#4CAF50";
-          setTimeout(() => {
-            el.textContent = originalText;
-            el.style.color = "";
-          }, 1000);
+      // Constants
+      const MAX_DATA_POINTS = 60;
+      const COLORS = [
+        "#4BC0C0",
+        "#FF6384",
+        "#36A2EB",
+        "#FF9F40",
+        "#9966FF",
+        "#FFCD56",
+        "#C9CBCF",
+      ];
+
+      // State
+      let monitors = new Map(); // host -> { color, data: [], stats: { ... } }
+      let bookmarks = [];
+      let isPaused = false;
+      let colorIndex = 0;
+
+      // Initialize Bookmarks
+      function renderBookmarks() {
+        bookmarkList.innerHTML = "";
+        savedHostsList.innerHTML = "";
+
+        bookmarks.forEach((bm, index) => {
+          // Modal list
+          const item = document.createElement("div");
+          item.className = "bookmark-item";
+          item.innerHTML = `
+                <div class="bookmark-info">
+                    <span class="bookmark-ip">${bm.ip}</span>
+                    <span class="bookmark-name">${bm.name}</span>
+                </div>
+                <button class="remove-btn" onclick="deleteBookmark(${index})">
+                    <span class="material-symbols-outlined">delete</span>
+                </button>
+            `;
+          bookmarkList.appendChild(item);
+
+          // Datalist option
+          const option = document.createElement("option");
+          option.value = bm.ip;
+          option.label = bm.name; // This helps show the nickname
+          savedHostsList.appendChild(option);
         });
       }
 
-      publicIpEl.addEventListener(
-        "click",
-        () => copyWithFeedback(publicIpEl),
-      );
-      localIpEl.addEventListener(
-        "click",
-        () => copyWithFeedback(localIpEl),
-      );
+      window.deleteBookmark = (index) => {
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "deleteBookmark", index }));
+        }
+      };
 
-      // let pingValues = [];
-      const MAX_DATA_POINTS = 60;
-      const REMOVE_CHUNK_SIZE = 10;
+      saveBmBtn.addEventListener("click", () => {
+        const ip = bmIpInput.value.trim();
+        const name = bmNameInput.value.trim();
+        if (ip) {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(
+              JSON.stringify({
+                type: "addBookmark",
+                bookmark: { ip, name },
+              }),
+            );
+            bmIpInput.value = "";
+            bmNameInput.value = "";
+          }
+        }
+      });
 
-      // State
-      let isPaused = false;
-      let lastReceivedTime = Date.now();
-      const PING_INTERVAL = 1000;
-      let currentHost = "1.1.1.1";
-
-      // Chart setup
+      // Chart Setup
       const chart = new Chart(ctx, {
         type: "line",
         data: {
           labels: [],
-          datasets: [
-            {
-              label: "Ping (ms)",
-              data: [],
-              borderColor: "rgba(75, 192, 192, 1)",
-              backgroundColor: "rgba(75, 192, 192, 0.2)",
-              borderWidth: 2,
-              fill: true,
-              tension: 0.2,
-              pointRadius: 3,
-              spanGaps: true,
-              segment: {
-                borderColor: (ctx) =>
-                  ctx.p1.parsed.y === 0 ? "#ff6b6b" : undefined,
-              },
-              pointBackgroundColor: (ctx) =>
-                ctx.parsed?.y === 0
-                  ? "#ff6b6b"
-                  : ctx.chart.data.datasets[0].borderColor,
-              pointBorderColor: (ctx) =>
-                ctx.parsed?.y === 0
-                  ? "#ff6b6b"
-                  : ctx.chart.data.datasets[0].borderColor,
-            },
-          ],
+          datasets: [],
         },
         options: {
           animation: { duration: 500, easing: "easeOutQuad" },
@@ -411,103 +606,275 @@
           interaction: { intersect: false, mode: "index" },
           scales: {
             y: {
-              type: "linear",
-              display: true,
-              position: "left",
               beginAtZero: false,
               grace: "5%",
               grid: { color: "rgba(0,0,0,0.05)" },
-              ticks: { color: "#333", font: { size: 14 } },
+              ticks: { color: "#333" },
             },
             x: {
-              grid: { display: false, color: "rgba(0,0,0,0.05)" },
-              ticks: {
-                color: "#333",
-                maxRotation: 0,
-                autoSkip: true,
-                maxTicksLimit: 8,
-                font: { size: 14 },
-              },
+              grid: { display: false },
+              ticks: { display: false }, // Hide time labels for cleaner look with multiple lines
             },
           },
           plugins: {
-            legend: { display: false },
+            legend: { display: false }, // We use the table as legend
             tooltip: {
-              backgroundColor: "rgba(255,255,255,0.9)",
-              titleColor: "#000",
-              bodyColor: "#333",
-              borderColor: "rgba(0,0,0,0.1)",
-              borderWidth: 1,
-              padding: 10,
-              cornerRadius: 8,
-              displayColors: false,
+              mode: "index",
+              intersect: false,
             },
           },
         },
       });
 
-      // Theme logic
-      let darkMode = window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches;
+      // Monitor Management
+      function addMonitor(host) {
+        if (!host || monitors.has(host)) return;
 
-      function applyTheme() {
-        document.documentElement.classList.toggle(
-          "dark-theme",
-          darkMode,
+        const color = COLORS[colorIndex % COLORS.length];
+        colorIndex++;
+
+        const nickname = bookmarks.find((b) => b.ip === host)?.name ||
+          "";
+
+        const monitor = {
+          host,
+          nickname,
+          color,
+          data: [], // Array of {x: time, y: ping}
+          stats: { current: 0, avg: 0, max: 0 },
+        };
+
+        monitors.set(host, monitor);
+
+        // Add Dataset to Chart
+        chart.data.datasets.push({
+          label: nickname ? `${host} (${nickname})` : host,
+          data: [],
+          borderColor: color,
+          backgroundColor: color,
+          borderWidth: 2,
+          pointRadius: 3,
+          tension: 0.2,
+          spanGaps: true,
+        });
+        chart.update();
+
+        // Add Row to Table
+        renderMonitorRow(monitor);
+
+        // Start Backend
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "start", host }));
+        }
+      }
+
+      function removeMonitor(host) {
+        if (!monitors.has(host)) return;
+
+        monitors.delete(host);
+
+        // Remove from Chart
+        const datasetIndex = chart.data.datasets.findIndex((d) =>
+          d.label.startsWith(host) || d.label.includes(host)
         );
-        updateChartTheme();
-      }
-
-      applyTheme();
-
-      // Listen for system theme changes
-      if (window.matchMedia) {
-        window.matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener(
-            "change",
-            (e) => {
-              darkMode = e.matches;
-              applyTheme();
-            },
-          );
-      }
-
-      function updateChartTheme() {
-        const gridColor = darkMode
-          ? "rgba(255, 255, 255, 0.05)"
-          : "rgba(0, 0, 0, 0.05)";
-        const textColor = darkMode ? "#e0e0e0" : "#333333";
-
-        chart.data.datasets[0].borderColor = darkMode
-          ? "rgba(75, 192, 255, 1)"
-          : "rgba(75, 192, 192, 1)";
-
-        // Update current value color immediately
-        const currentEl = document.getElementById("currentPing");
-        if (currentEl.style.color !== "rgb(255, 107, 107)") { // Don't override error color
-          currentEl.style.color = chart.data.datasets[0].borderColor;
+        if (datasetIndex > -1) {
+          chart.data.datasets.splice(datasetIndex, 1);
+          chart.update();
         }
 
-        chart.data.datasets[0].backgroundColor = darkMode
-          ? "rgba(75, 192, 255, 0.1)"
-          : "rgba(75, 192, 192, 0.1)";
-        chart.options.scales.y.grid.color = gridColor;
-        chart.options.scales.x.grid.color = gridColor;
-        chart.options.scales.y.ticks.color = textColor;
-        chart.options.scales.x.ticks.color = textColor;
-        chart.options.plugins.tooltip.backgroundColor = darkMode
-          ? "rgba(30, 30, 30, 0.9)"
-          : "rgba(255, 255, 255, 0.9)";
-        chart.options.plugins.tooltip.titleColor = darkMode
-          ? "#ffffff"
-          : "#000000";
-        chart.options.plugins.tooltip.bodyColor = textColor;
-        chart.options.plugins.tooltip.borderColor = darkMode
-          ? "rgba(255, 255, 255, 0.1)"
-          : "rgba(0, 0, 0, 0.1)";
+        // Remove from Table
+        const row = document.getElementById(
+          `row-${host.replace(/[.:]/g, "-")}`,
+        );
+        if (row) row.remove();
 
-        chart.update();
+        // Stop Backend
+        if (ws.readyState === WebSocket.OPEN) {
+          ws.send(JSON.stringify({ type: "stop", host }));
+        }
       }
+
+      function renderMonitorRow(monitor) {
+        const safeId = monitor.host.replace(/[.:]/g, "-");
+        const row = document.createElement("tr");
+        row.id = `row-${safeId}`;
+        row.innerHTML = `
+            <td><span class="color-dot" style="background-color: ${monitor.color}"></span></td>
+            <td>
+                <span class="host-cell">${monitor.host}</span>
+                ${
+          monitor.nickname
+            ? `<span class="host-sub">${monitor.nickname}</span>`
+            : ""
+        }
+            </td>
+            <td id="curr-${safeId}">--</td>
+            <td id="avg-${safeId}">--</td>
+            <td id="max-${safeId}">--</td>
+            <td>
+                <button class="remove-btn" onclick="removeMonitor('${monitor.host}')">
+                    <span class="material-symbols-outlined">close</span>
+                </button>
+            </td>
+          `;
+        monitorTableBody.appendChild(row);
+      }
+
+      window.removeMonitor = removeMonitor; // Expose for onclick
+
+      // Interactions
+      addHostBtn.addEventListener("click", () => {
+        const host = hostInput.value.trim();
+        if (host) {
+          addMonitor(host);
+          hostInput.value = "";
+        }
+      });
+      hostInput.addEventListener("keypress", (e) => {
+        if (e.key === "Enter") addHostBtn.click();
+      });
+
+      pauseAllBtn.addEventListener("click", () => {
+        isPaused = !isPaused;
+        pauseAllBtn.querySelector("span").textContent = isPaused
+          ? "play_arrow"
+          : "pause";
+        if (ws.readyState === WebSocket.OPEN) {
+          if (isPaused) {
+            ws.send(JSON.stringify({ type: "pauseAll" }));
+          } else {
+            // Resume all active monitors
+            monitors.forEach((_, host) => {
+              ws.send(JSON.stringify({ type: "start", host }));
+            });
+          }
+        }
+      });
+
+      // Settings Modal
+      settingsBtn.addEventListener(
+        "click",
+        () => settingsModal.classList.add("open"),
+      );
+      closeSettingsBtn.addEventListener(
+        "click",
+        () => settingsModal.classList.remove("open"),
+      );
+      settingsModal.addEventListener("click", (e) => {
+        if (e.target === settingsModal) {
+          settingsModal.classList.remove("open");
+        }
+      });
+
+      // WebSocket
+      ws.onopen = () => {
+        console.log("WS Open");
+        // We wait for the 'monitors' message to populate initial state
+      };
+
+      ws.onmessage = (event) => {
+        if (isPaused) return;
+
+        try {
+          const data = JSON.parse(event.data);
+
+          if (data.type === "bookmarks") {
+            bookmarks = data.bookmarks;
+            renderBookmarks();
+            return;
+          }
+
+          if (data.type === "monitors") {
+            if (data.hosts && data.hosts.length > 0) {
+              data.hosts.forEach((host) => addMonitor(host));
+            } else if (monitors.size === 0) {
+              addMonitor("1.1.1.1");
+            }
+            return;
+          }
+
+          if (data.type === "networkInfo") {
+            document.getElementById("publicIp").textContent =
+              data.publicIp || "Unknown";
+            if (data.interfaces && data.interfaces.length > 0) {
+              const infos = data.interfaces.map((i) =>
+                `${i.address} (${i.name})`
+              ).join(", ");
+              document.getElementById("localIp").textContent = infos;
+            }
+            return;
+          }
+
+          if (data.speed) {
+            document.getElementById("downloadSpeed").textContent =
+              formatSpeed(data.speed.rx);
+            document.getElementById("uploadSpeed").textContent =
+              formatSpeed(data.speed.tx);
+            return;
+          }
+
+          if (data.type === "error") {
+            // Maybe mark the row as error?
+            console.error(data.message);
+            return;
+          }
+
+          if (data.host && data.ping !== undefined) {
+            const monitor = monitors.get(data.host);
+            if (monitor) {
+              const now = new Date();
+              const timeString = now.toLocaleTimeString();
+
+              // Update Data
+              monitor.data.push(data.ping);
+              if (monitor.data.length > MAX_DATA_POINTS) {
+                monitor.data.shift();
+              }
+
+              // Update Chart Dataset
+              const dataset = chart.data.datasets.find((d) =>
+                d.label.startsWith(data.host) ||
+                d.label.includes(data.host)
+              );
+              if (dataset) {
+                dataset.data.push(data.ping);
+                if (dataset.data.length > MAX_DATA_POINTS) {
+                  dataset.data.shift();
+                }
+                // Ensure labels match length (Chart.js needs labels for x-axis)
+                // We can just use a global rolling label set or just push a placeholder
+                if (chart.data.labels.length < dataset.data.length) {
+                  chart.data.labels.push(timeString);
+                }
+                if (chart.data.labels.length > MAX_DATA_POINTS) {
+                  chart.data.labels.shift();
+                }
+              }
+
+              chart.update(); // Efficient update with animation
+
+              // Update Stats
+              const pings = monitor.data;
+              const current = data.ping;
+              const avg = (pings.reduce((a, b) =>
+                a + b, 0) / pings.length).toFixed(1);
+              const max = Math.max(...pings);
+
+              const safeId = data.host.replace(/[.:]/g, "-");
+              const currEl = document.getElementById(`curr-${safeId}`);
+              if (currEl) {
+                currEl.textContent = current + " ms";
+                document.getElementById(`avg-${safeId}`).textContent =
+                  avg + " ms";
+                document.getElementById(`max-${safeId}`).textContent =
+                  max + " ms";
+              }
+            }
+          }
+        } catch (e) {
+          console.error(e);
+        }
+      };
 
       function formatSpeed(bytesPerSec) {
         if (!bytesPerSec) return "0 B/s";
@@ -521,224 +888,51 @@
         return `${val.toFixed(1)} ${units[unitIndex]}`;
       }
 
-      function updateStats() {
-        const pings = chart.data.datasets[0].data.filter((v) =>
-          v !== undefined && v !== null
-        );
-        if (pings.length > 0) {
-          const currentPing = pings[pings.length - 1];
-          const avgPing = (pings.reduce((a, b) =>
-            a + b, 0) / pings.length)
-            .toFixed(1);
-          const maxPing = Math.max(...pings);
+      // Theme Support
+      function updateTheme(isDark) {
+        const textColor = isDark ? "#e0e0e0" : "#333";
+        const gridColor = isDark
+          ? "rgba(255, 255, 255, 0.05)"
+          : "rgba(0, 0, 0, 0.05)";
 
-          document.getElementById("currentPing").textContent =
-            `${currentPing} ms`;
-          document.getElementById("avgPing").textContent =
-            `${avgPing} ms`;
-          document.getElementById("maxPing").textContent =
-            `${maxPing} ms`;
-        }
-      }
-
-      function addDataPoint(timeString, pingValue) {
-        chart.data.labels.push(timeString);
-        chart.data.datasets[0].data.push(pingValue);
-
-        if (chart.data.labels.length > MAX_DATA_POINTS) {
-          chart.data.labels = chart.data.labels.slice(
-            REMOVE_CHUNK_SIZE,
-          );
-          chart.data.datasets[0].data = chart.data.datasets[0].data
-            .slice(
-              REMOVE_CHUNK_SIZE,
-            );
-        }
-      }
-
-      function showError(msg) {
-        errorBanner.textContent = msg;
-        errorBanner.style.display = "block";
-      }
-
-      function hideError() {
-        errorBanner.style.display = "none";
-      }
-
-      // --- New Feature Implementation ---
-
-      // 1. Update Host
-      hostInput.addEventListener("input", (e) => {
-        if (e.target.value.trim() !== currentHost) {
-          updateHostBtn.style.display = "flex";
-        } else {
-          updateHostBtn.style.display = "none";
-        }
-      });
-
-      function handleUpdateHost() {
-        const newHost = hostInput.value.trim();
-        if (newHost) {
-          currentHost = newHost;
-          updateHostBtn.style.display = "none";
-          hideError();
-
-          // Clear chart for new session
-          // pingValues = []; // Removed
-          chart.data.labels = [];
-          chart.data.datasets[0].data = [];
+        if (chart) {
+          chart.options.scales.y.ticks.color = textColor;
+          chart.options.scales.y.grid.color = gridColor;
           chart.update();
-
-          ws.send(
-            JSON.stringify({ type: "updateHost", host: newHost }),
-          );
-
-          // Reset pause state if paused
-          if (isPaused) {
-            isPaused = false;
-            pauseBtn.querySelector("span").textContent = "pause";
-            ws.send(JSON.stringify({ type: "resume" }));
-          }
         }
       }
 
-      updateHostBtn.addEventListener("click", handleUpdateHost);
-
-      // Allow Enter key to update host
-      hostInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") handleUpdateHost();
-      });
-
-      // 2. Pause/Resume
-      pauseBtn.addEventListener("click", () => {
-        isPaused = !isPaused;
-        pauseBtn.querySelector("span").textContent = isPaused
-          ? "play_arrow"
-          : "pause";
-        ws.send(
-          JSON.stringify({ type: isPaused ? "pause" : "resume" }),
-        );
-      });
-
-      // Keyboard shortcut for Pause/Resume
-      document.addEventListener("keydown", (e) => {
-        if (
-          e.code === "Space" && e.target.tagName !== "INPUT" &&
-          e.target.tagName !== "TEXTAREA"
-        ) {
-          e.preventDefault(); // Prevent default spacebar action (e.g., scrolling)
-          pauseBtn.click(); // Toggle the pause button
-        }
-      });
-
-      // WebSocket Handling
-      ws.onmessage = function (event) {
-        if (isPaused) return;
-
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === "networkInfo") {
-            document.getElementById("publicIp").textContent =
-              data.publicIp || "Unknown";
-
-            if (data.interfaces && data.interfaces.length > 0) {
-              const infos = data.interfaces.map((i) =>
-                `${i.address} (${i.name})`
-              ).join(", ");
-              document.getElementById("localIp").textContent = infos;
-            } else {
-              document.getElementById("localIp").textContent =
-                "Unknown";
-            }
-            return;
-          }
-
-          if (data.type === "error") {
-            showError(data.message);
-            return;
-          }
-
-          const now = new Date();
-          const timeString = now.toLocaleTimeString([], {
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
+      if (window.matchMedia) {
+        window.matchMedia("(prefers-color-scheme: dark)")
+          .addEventListener("change", (e) => {
+            document.documentElement.classList.toggle(
+              "dark-theme",
+              e.matches,
+            );
+            updateTheme(e.matches);
           });
+      }
+      if (
+        window.matchMedia &&
+        window.matchMedia("(prefers-color-scheme: dark)").matches
+      ) {
+        updateTheme(true);
+      }
 
-          let updated = false;
-
-          if (data.ping !== undefined) {
-            addDataPoint(timeString, data.ping);
-            updateStats();
-            lastReceivedTime = Date.now();
-            hideError(); // Clear error on successful ping
-
-            const newColor = darkMode
-              ? "rgba(75, 192, 255, 1)"
-              : "rgba(75, 192, 192, 1)";
-            document.getElementById("currentPing").style.color =
-              newColor;
-            updated = true;
-          }
-
-          if (data.speed !== undefined) {
-            document.getElementById("downloadSpeed").textContent =
-              formatSpeed(
-                data.speed.rx,
-              );
-            document.getElementById("uploadSpeed").textContent =
-              formatSpeed(
-                data.speed.tx,
-              );
-            // No graph update for speed
-          }
-
-          if (updated) chart.update();
-        } catch (e) {
-          console.error("Error processing data:", e);
-        }
-      };
-
-      ws.onclose = () => {
-        console.log("WebSocket connection closed");
-        document.getElementById("currentPing").style.color = "#ff6b6b";
-      };
-
-      ws.onerror = (error) => {
-        console.error("WebSocket error:", error);
-        document.getElementById("currentPing").style.color = "#ff6b6b";
-        chart.update();
-      };
-
-      // Watchdog
-      setInterval(() => {
-        if (isPaused) return; // Don't flag errors if manually paused
-
-        if (ws.readyState === WebSocket.OPEN) {
-          const currentTime = Date.now();
-          const timeSinceLastPing = currentTime - lastReceivedTime;
-
-          if (timeSinceLastPing >= PING_INTERVAL * 2) { // Allow some slack (2s)
-            const now = new Date();
-            const timeString = now.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-              second: "2-digit",
-            });
-            addDataPoint(timeString, 0);
-
-            document.getElementById("currentPing").style.color =
-              "#ff6b6b";
-            chart.update();
-            lastReceivedTime = currentTime;
-          }
-        }
-      }, PING_INTERVAL);
-
+      // Final initialization
       window.addEventListener("load", () => {
-        // @ts-ignore
-        if (typeof show_app === "function") show_app();
+        // Use a small timeout to ensure bindings are active
+        setTimeout(() => {
+          // @ts-ignore
+          if (typeof show_app === "function") {
+            // @ts-ignore
+            show_app();
+          } else {
+            console.warn(
+              "show_app not found, maybe running in browser?",
+            );
+          }
+        }, 100);
       });
     </script>
   </body>

@@ -1,6 +1,6 @@
 #!/usr/bin/env -S deno run --allow-all
 import { SizeHint, Webview } from "@webview/webview";
-import { Application, ApplicationWindow } from "@sigmasd/gtk/gtk";
+import { Application, ApplicationWindow } from "@sigmasd/gtk/gtk4";
 
 function waitForPort(worker: Worker) {
   return new Promise((resolve) => {

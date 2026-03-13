@@ -1,8 +1,71 @@
-#!/usr/bin/env -S deno run --allow-net --allow-read --allow-run
+#!/usr/bin/env -S deno run --allow-all
 /// <reference lib="deno.worker" />
 
+interface PingSession {
+  process: Deno.ChildProcess;
+  retryTimeout?: number;
+}
+
+interface Bookmark {
+  ip: string;
+  name: string;
+}
+
+const getAppDir = () => {
+  const cacheDir = Deno.env.get("XDG_CACHE_HOME") ||
+    (Deno.build.os === "windows"
+      ? Deno.env.get("LOCALAPPDATA")
+      : `${Deno.env.get("HOME")}/.cache`);
+  const appDir = `${cacheDir}/pingmonitor`;
+  return appDir;
+};
+
+const appDir = getAppDir();
+await Deno.mkdir(appDir, { recursive: true });
+
+const BOOKMARKS_FILE = `${appDir}/bookmarks.json`;
+const MONITORS_FILE = `${appDir}/monitors.json`;
+const activePings = new Map<string, PingSession>();
+
+async function getBookmarks(): Promise<Bookmark[]> {
+  try {
+    const data = await Deno.readTextFile(BOOKMARKS_FILE);
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+async function saveBookmarks(bookmarks: Bookmark[]) {
+  try {
+    await Deno.writeTextFile(
+      BOOKMARKS_FILE,
+      JSON.stringify(bookmarks, null, 2),
+    );
+  } catch (e) {
+    console.error("Error saving bookmarks:", e);
+  }
+}
+
+async function getSavedMonitors(): Promise<string[]> {
+  try {
+    const data = await Deno.readTextFile(MONITORS_FILE);
+    return JSON.parse(data);
+  } catch {
+    return [];
+  }
+}
+
+async function saveMonitors(hosts: string[]) {
+  try {
+    await Deno.writeTextFile(MONITORS_FILE, JSON.stringify(hosts, null, 2));
+  } catch (e) {
+    console.error("Error saving monitors:", e);
+  }
+}
+
 function startPingSession(socket: WebSocket, host: string) {
-  stopPing();
+  stopPing(host);
 
   const cmd = new Deno.Command("ping", {
     args: [host],
@@ -14,19 +77,20 @@ function startPingSession(socket: WebSocket, host: string) {
   });
 
   const process = cmd.spawn();
-  currentProcess = process;
+  const session: PingSession = { process };
+  activePings.set(host, session);
 
   // Handle stdout
   (async () => {
     try {
       const stream = process.stdout.pipeThrough(new TextDecoderStream());
       for await (const value of stream) {
-        if (process !== currentProcess) break;
+        if (activePings.get(host)?.process !== process) break;
 
         const match = value.match(/time=(\d+(\.\d+)?)/);
         if (match) {
           if (socket.readyState === WebSocket.OPEN) {
-            socket.send(JSON.stringify({ ping: parseFloat(match[1]) }));
+            socket.send(JSON.stringify({ host, ping: parseFloat(match[1]) }));
           }
         }
       }
@@ -40,9 +104,9 @@ function startPingSession(socket: WebSocket, host: string) {
     try {
       const stderrStream = process.stderr.pipeThrough(new TextDecoderStream());
       for await (const chunk of stderrStream) {
-        if (process !== currentProcess) break;
+        if (activePings.get(host)?.process !== process) break;
         if (chunk.trim().length > 0) {
-          console.error("Ping stderr:", chunk);
+          console.error(`Ping stderr (${host}):`, chunk);
           // Simple heuristic to show relevant errors
           if (
             chunk.includes("unknown host") ||
@@ -53,7 +117,8 @@ function startPingSession(socket: WebSocket, host: string) {
               socket.send(
                 JSON.stringify({
                   type: "error",
-                  message: `Ping failed: ${chunk.trim()}`,
+                  host,
+                  message: `Ping failed for ${host}: ${chunk.trim()}`,
                 }),
               );
             }
@@ -67,36 +132,43 @@ function startPingSession(socket: WebSocket, host: string) {
 
   // Handle process exit
   process.status.then((status) => {
-    if (process === currentProcess) {
+    const currentSession = activePings.get(host);
+    if (currentSession?.process === process) {
       // Process exited unexpectedly (not killed by stopPing)
       if (!status.success) {
-        console.log("Ping process exited unexpectedly, retrying in 2s...");
+        console.log(
+          `Ping process for ${host} exited unexpectedly, retrying in 2s...`,
+        );
         if (socket.readyState === WebSocket.OPEN) {
-          retryTimeout = setTimeout(() => {
+          currentSession.retryTimeout = setTimeout(() => {
             startPingSession(socket, host);
           }, 2000);
         }
+      } else {
+        activePings.delete(host);
       }
     }
   });
 }
 
-let currentProcess: Deno.ChildProcess | null = null;
-let currentHost = "1.1.1.1";
-let retryTimeout: number | undefined;
-
-function stopPing() {
-  if (currentProcess) {
+function stopPing(host: string) {
+  const session = activePings.get(host);
+  if (session) {
     try {
-      currentProcess.kill();
+      session.process.kill();
     } catch (_e) {
       // Ignore
     }
-    currentProcess = null;
+    if (session.retryTimeout) {
+      clearTimeout(session.retryTimeout);
+    }
+    activePings.delete(host);
   }
-  if (retryTimeout) {
-    clearTimeout(retryTimeout);
-    retryTimeout = undefined;
+}
+
+function stopAllPings() {
+  for (const host of activePings.keys()) {
+    stopPing(host);
   }
 }
 
@@ -332,11 +404,17 @@ if (import.meta.main) {
 
       console.log("New WebSocket connection");
 
-      socket.addEventListener("open", () => {
+      socket.addEventListener("open", async () => {
         console.log("WebSocket connection opened");
-        // Start default ping
-        startPingSession(socket, currentHost);
+        // Don't start default ping here, frontend will request it
         startSpeedSession(socket);
+
+        // Send initial bookmarks and monitors
+        const bms = await getBookmarks();
+        socket.send(JSON.stringify({ type: "bookmarks", bookmarks: bms }));
+
+        const savedMonitors = await getSavedMonitors();
+        socket.send(JSON.stringify({ type: "monitors", hosts: savedMonitors }));
 
         // Initial network info
         sendNetworkInfo(socket);
@@ -344,16 +422,38 @@ if (import.meta.main) {
         startNetworkWatcher(socket);
       });
 
-      socket.addEventListener("message", (event) => {
+      socket.addEventListener("message", async (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.type === "updateHost" && data.host) {
-            currentHost = data.host;
-            startPingSession(socket, currentHost);
-          } else if (data.type === "pause") {
-            stopPing();
-          } else if (data.type === "resume") {
-            startPingSession(socket, currentHost);
+          if (data.type === "start" && data.host) {
+            startPingSession(socket, data.host);
+            const savedMonitors = await getSavedMonitors();
+            if (!savedMonitors.includes(data.host)) {
+              savedMonitors.push(data.host);
+              await saveMonitors(savedMonitors);
+            }
+          } else if (data.type === "stop" && data.host) {
+            stopPing(data.host);
+            const savedMonitors = await getSavedMonitors();
+            const index = savedMonitors.indexOf(data.host);
+            if (index > -1) {
+              savedMonitors.splice(index, 1);
+              await saveMonitors(savedMonitors);
+            }
+          } else if (data.type === "pauseAll") {
+            stopAllPings();
+          } else if (data.type === "addBookmark" && data.bookmark) {
+            const bms = await getBookmarks();
+            bms.push(data.bookmark);
+            await saveBookmarks(bms);
+            socket.send(JSON.stringify({ type: "bookmarks", bookmarks: bms }));
+          } else if (
+            data.type === "deleteBookmark" && data.index !== undefined
+          ) {
+            const bms = await getBookmarks();
+            bms.splice(data.index, 1);
+            await saveBookmarks(bms);
+            socket.send(JSON.stringify({ type: "bookmarks", bookmarks: bms }));
           }
         } catch (e) {
           console.error("Error handling message:", e);
@@ -362,7 +462,7 @@ if (import.meta.main) {
 
       socket.addEventListener("close", () => {
         console.log("WebSocket connection closed");
-        stopPing();
+        stopAllPings();
         stopSpeedSession();
         stopNetworkWatcher();
       });
