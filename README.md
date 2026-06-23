@@ -40,7 +40,7 @@ times graph.
 ## Prerequisites
 
 - Deno (https://deno.land/)
-- WebView dependencies (https://webview.dev/)
+- WebView dependencies (https://github.com/webview/webview)
 
 ## Configuration
 
