@@ -7,377 +7,377 @@
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <link rel="stylesheet" href="./assets/material-symbols.css" />
     <style>
-      :root {
-        --bg-color: #f5f5f7;
-        --chart-bg: #ffffff;
-        --text-color: #333333;
-        --grid-color: rgba(0, 0, 0, 0.1);
-        --chart-border: rgba(75, 192, 192, 1);
-        --chart-fill: rgba(75, 192, 192, 0.2);
-        --toggle-bg: #e0e0e0;
-        --header-bg: #ffffff;
-        --header-border: #e0e0e0;
-        --input-bg: #ffffff;
-        --input-border: #cccccc;
-        --error-color: #ff5252;
-        --modal-bg: #ffffff;
-        --modal-overlay: rgba(0, 0, 0, 0.5);
-      }
+    :root {
+      --bg-color: #f5f5f7;
+      --chart-bg: #ffffff;
+      --text-color: #333333;
+      --grid-color: rgba(0, 0, 0, 0.1);
+      --chart-border: rgba(75, 192, 192, 1);
+      --chart-fill: rgba(75, 192, 192, 0.2);
+      --toggle-bg: #e0e0e0;
+      --header-bg: #ffffff;
+      --header-border: #e0e0e0;
+      --input-bg: #ffffff;
+      --input-border: #cccccc;
+      --error-color: #ff5252;
+      --modal-bg: #ffffff;
+      --modal-overlay: rgba(0, 0, 0, 0.5);
+    }
 
-      :root.dark-theme {
-        --bg-color: #121212;
-        --chart-bg: #1e1e1e;
-        --text-color: #e0e0e0;
-        --grid-color: rgba(255, 255, 255, 0.1);
-        --chart-border: rgba(75, 192, 255, 1);
-        --chart-fill: rgba(75, 192, 255, 0.2);
-        --toggle-bg: #333333;
-        --header-bg: #1e1e1e;
-        --header-border: #333333;
-        --input-bg: #2d2d2d;
-        --input-border: #444444;
-        --error-color: #ff6b6b;
-        --modal-bg: #2d2d2d;
-        --modal-overlay: rgba(0, 0, 0, 0.7);
-      }
+    :root.dark-theme {
+      --bg-color: #121212;
+      --chart-bg: #1e1e1e;
+      --text-color: #e0e0e0;
+      --grid-color: rgba(255, 255, 255, 0.1);
+      --chart-border: rgba(75, 192, 255, 1);
+      --chart-fill: rgba(75, 192, 255, 0.2);
+      --toggle-bg: #333333;
+      --header-bg: #1e1e1e;
+      --header-border: #333333;
+      --input-bg: #2d2d2d;
+      --input-border: #444444;
+      --error-color: #ff6b6b;
+      --modal-bg: #2d2d2d;
+      --modal-overlay: rgba(0, 0, 0, 0.7);
+    }
 
-      html.dark-theme body {
-        background-color: #121212;
-        color: #e0e0e0;
-      }
+    html.dark-theme body {
+      background-color: #121212;
+      color: #e0e0e0;
+    }
 
-      * {
-        box-sizing: border-box;
-      }
+    * {
+      box-sizing: border-box;
+    }
 
-      body {
-        font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
-        margin: 0;
-        padding: 0;
-        height: 100vh;
-        display: flex;
-        flex-direction: column;
-        background-color: var(--bg-color);
-        color: var(--text-color);
-        transition: background-color 0.3s, color 0.3s;
-        overflow-y: auto;
-        overflow-x: hidden;
-      }
+    body {
+      font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
+      margin: 0;
+      padding: 0;
+      height: 100vh;
+      display: flex;
+      flex-direction: column;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      transition: background-color 0.3s, color 0.3s;
+      overflow-y: auto;
+      overflow-x: hidden;
+    }
 
-      .top-bar {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.75rem 1.5rem;
-        background-color: var(--header-bg);
-        border-bottom: 1px solid var(--header-border);
-        flex-shrink: 0;
-        box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
-        z-index: 10;
-        gap: 1rem;
-      }
+    .top-bar {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.75rem 1.5rem;
+      background-color: var(--header-bg);
+      border-bottom: 1px solid var(--header-border);
+      flex-shrink: 0;
+      box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+      z-index: 10;
+      gap: 1rem;
+    }
 
-      .controls-area {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-        flex-grow: 1;
-        max-width: 600px;
-      }
+    .controls-area {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      flex-grow: 1;
+      max-width: 600px;
+    }
 
-      .host-input-group {
-        position: relative;
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
+    .host-input-group {
+      position: relative;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
 
-      .host-input {
-        padding: 0.5rem 0.8rem;
-        border-radius: 6px;
-        border: 1px solid var(--input-border);
-        background: var(--input-bg);
-        color: var(--text-color);
-        font-family: inherit;
-        font-size: 0.9rem;
-        width: 200px;
-        outline: none;
-        transition: border-color 0.2s;
-      }
+    .host-input {
+      padding: 0.5rem 0.8rem;
+      border-radius: 6px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+      font-family: inherit;
+      font-size: 0.9rem;
+      width: 200px;
+      outline: none;
+      transition: border-color 0.2s;
+    }
 
-      .host-input:focus {
-        border-color: var(--chart-border);
-      }
+    .host-input:focus {
+      border-color: var(--chart-border);
+    }
 
-      .control-btn {
-        background: var(--toggle-bg);
-        color: var(--text-color);
-        border: none;
-        border-radius: 6px;
-        padding: 0.4rem;
-        cursor: pointer;
-        transition: all 0.2s;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        min-width: 36px;
-        height: 36px;
-      }
+    .control-btn {
+      background: var(--toggle-bg);
+      color: var(--text-color);
+      border: none;
+      border-radius: 6px;
+      padding: 0.4rem;
+      cursor: pointer;
+      transition: all 0.2s;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      min-width: 36px;
+      height: 36px;
+    }
 
-      .control-btn:hover {
-        background-color: var(--chart-border);
-        color: white;
-      }
+    .control-btn:hover {
+      background-color: var(--chart-border);
+      color: white;
+    }
 
-      .control-btn.secondary:hover {
-        background-color: #666;
-      }
+    .control-btn.secondary:hover {
+      background-color: #666;
+    }
 
-      .divider {
-        width: 1px;
-        height: 24px;
-        background-color: var(--header-border);
-        margin: 0 0.5rem;
-      }
+    .divider {
+      width: 1px;
+      height: 24px;
+      background-color: var(--header-border);
+      margin: 0 0.5rem;
+    }
 
-      .stats-container {
-        display: flex;
-        gap: 1rem;
-        font-size: 0.9rem;
-        margin-left: auto;
-        flex-shrink: 0;
-      }
+    .stats-container {
+      display: flex;
+      gap: 1rem;
+      font-size: 0.9rem;
+      margin-left: auto;
+      flex-shrink: 0;
+    }
 
-      .stat-box {
-        display: flex;
-        align-items: center;
-        gap: 6px;
-        cursor: default;
-        user-select: none;
-        white-space: nowrap;
-      }
+    .stat-box {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      cursor: default;
+      user-select: none;
+      white-space: nowrap;
+    }
 
-      .stat-label {
-        opacity: 0.6;
-        font-weight: 500;
-      }
+    .stat-label {
+      opacity: 0.6;
+      font-weight: 500;
+    }
 
-      .stat-value {
-        font-weight: 600;
-        font-family: "Consolas", "Monaco", monospace;
-        font-size: 1.1rem;
-        min-width: 4.5rem;
-        text-align: right;
-      }
+    .stat-value {
+      font-weight: 600;
+      font-family: "Consolas", "Monaco", monospace;
+      font-size: 1.1rem;
+      min-width: 4.5rem;
+      text-align: right;
+    }
 
-      .chart-area {
-        flex-grow: 1;
-        position: relative;
-        width: 100%;
-        padding: 1rem;
-        min-height: 300px;
-        max-height: 60vh;
-      }
+    .chart-area {
+      flex-grow: 1;
+      position: relative;
+      width: 100%;
+      padding: 1rem;
+      min-height: 300px;
+      max-height: 60vh;
+    }
 
-      .chart-wrapper {
-        position: relative;
-        width: 100%;
-        height: 100%;
-      }
+    .chart-wrapper {
+      position: relative;
+      width: 100%;
+      height: 100%;
+    }
 
-      .monitor-list-area {
-        padding: 1rem 1.5rem;
-        background-color: var(--bg-color);
-        flex-grow: 1;
-        overflow-y: auto;
-      }
+    .monitor-list-area {
+      padding: 1rem 1.5rem;
+      background-color: var(--bg-color);
+      flex-grow: 1;
+      overflow-y: auto;
+    }
 
-      .monitor-table {
-        width: 100%;
-        border-collapse: collapse;
-        font-size: 0.9rem;
-      }
+    .monitor-table {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.9rem;
+    }
 
-      .monitor-table th {
-        text-align: left;
-        padding: 0.5rem;
-        color: var(--text-color);
-        opacity: 0.6;
-        font-weight: 500;
-        border-bottom: 1px solid var(--header-border);
-      }
+    .monitor-table th {
+      text-align: left;
+      padding: 0.5rem;
+      color: var(--text-color);
+      opacity: 0.6;
+      font-weight: 500;
+      border-bottom: 1px solid var(--header-border);
+    }
 
-      .monitor-table td {
-        padding: 0.75rem 0.5rem;
-        border-bottom: 1px solid var(--header-border);
-        vertical-align: middle;
-      }
+    .monitor-table td {
+      padding: 0.75rem 0.5rem;
+      border-bottom: 1px solid var(--header-border);
+      vertical-align: middle;
+    }
 
-      .color-dot {
-        width: 12px;
-        height: 12px;
-        border-radius: 50%;
-        display: inline-block;
-      }
+    .color-dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      display: inline-block;
+    }
 
-      .host-cell {
-        font-weight: 600;
-      }
+    .host-cell {
+      font-weight: 600;
+    }
 
-      .host-sub {
-        font-size: 0.8em;
-        opacity: 0.7;
-        margin-left: 0.5rem;
-        font-weight: normal;
-      }
+    .host-sub {
+      font-size: 0.8em;
+      opacity: 0.7;
+      margin-left: 0.5rem;
+      font-weight: normal;
+    }
 
-      .remove-btn {
-        color: var(--error-color);
-        background: transparent;
-        border: none;
-        cursor: pointer;
-        padding: 4px;
-        border-radius: 4px;
-        display: flex;
-        align-items: center;
-      }
-      .remove-btn:hover {
-        background-color: rgba(255, 82, 82, 0.1);
-      }
+    .remove-btn {
+      color: var(--error-color);
+      background: transparent;
+      border: none;
+      cursor: pointer;
+      padding: 4px;
+      border-radius: 4px;
+      display: flex;
+      align-items: center;
+    }
+    .remove-btn:hover {
+      background-color: rgba(255, 82, 82, 0.1);
+    }
 
-      .network-bar {
-        display: flex;
-        justify-content: flex-start;
-        align-items: center;
-        padding: 0.5rem 1.5rem;
-        background-color: var(--bg-color);
-        font-size: 0.85rem;
-        gap: 1.5rem;
-        flex-shrink: 0;
-        opacity: 0.8;
-        border-top: 1px solid var(--header-border);
-      }
-      .network-item {
-        display: flex;
-        align-items: center;
-        gap: 0.5rem;
-      }
-      .network-label {
-        font-weight: 600;
-        color: var(--chart-border);
-      }
+    .network-bar {
+      display: flex;
+      justify-content: flex-start;
+      align-items: center;
+      padding: 0.5rem 1.5rem;
+      background-color: var(--bg-color);
+      font-size: 0.85rem;
+      gap: 1.5rem;
+      flex-shrink: 0;
+      opacity: 0.8;
+      border-top: 1px solid var(--header-border);
+    }
+    .network-item {
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+    .network-label {
+      font-weight: 600;
+      color: var(--chart-border);
+    }
 
-      /* Modal */
-      .modal {
-        display: none;
-        position: fixed;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 100%;
-        background-color: var(--modal-overlay);
-        z-index: 100;
-        justify-content: center;
-        align-items: center;
-      }
-      .modal.open {
-        display: flex;
-      }
-      .modal-content {
-        background-color: var(--modal-bg);
-        padding: 1.5rem;
-        border-radius: 8px;
-        width: 400px;
-        max-width: 90%;
-        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
-      }
-      .modal-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        margin-bottom: 1rem;
-      }
-      .modal-title {
-        font-size: 1.2rem;
-        font-weight: 600;
-      }
-      .close-modal {
-        background: none;
-        border: none;
-        cursor: pointer;
-        color: var(--text-color);
-        opacity: 0.6;
-      }
-      .close-modal:hover {
-        opacity: 1;
-      }
+    /* Modal */
+    .modal {
+      display: none;
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-color: var(--modal-overlay);
+      z-index: 100;
+      justify-content: center;
+      align-items: center;
+    }
+    .modal.open {
+      display: flex;
+    }
+    .modal-content {
+      background-color: var(--modal-bg);
+      padding: 1.5rem;
+      border-radius: 8px;
+      width: 400px;
+      max-width: 90%;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.2);
+    }
+    .modal-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 1rem;
+    }
+    .modal-title {
+      font-size: 1.2rem;
+      font-weight: 600;
+    }
+    .close-modal {
+      background: none;
+      border: none;
+      cursor: pointer;
+      color: var(--text-color);
+      opacity: 0.6;
+    }
+    .close-modal:hover {
+      opacity: 1;
+    }
 
-      .bookmark-list {
-        max-height: 300px;
-        overflow-y: auto;
-        margin-bottom: 1rem;
-      }
-      .bookmark-item {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 0.5rem;
-        border-bottom: 1px solid var(--header-border);
-      }
-      .bookmark-item:last-child {
-        border-bottom: none;
-      }
-      .bookmark-info {
-        display: flex;
-        flex-direction: column;
-      }
-      .bookmark-ip {
-        font-weight: 600;
-      }
-      .bookmark-name {
-        font-size: 0.85rem;
-        opacity: 0.7;
-      }
+    .bookmark-list {
+      max-height: 300px;
+      overflow-y: auto;
+      margin-bottom: 1rem;
+    }
+    .bookmark-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 0.5rem;
+      border-bottom: 1px solid var(--header-border);
+    }
+    .bookmark-item:last-child {
+      border-bottom: none;
+    }
+    .bookmark-info {
+      display: flex;
+      flex-direction: column;
+    }
+    .bookmark-ip {
+      font-weight: 600;
+    }
+    .bookmark-name {
+      font-size: 0.85rem;
+      opacity: 0.7;
+    }
 
-      .input-group {
-        display: flex;
-        gap: 0.5rem;
-        margin-top: 1rem;
-        flex-wrap: wrap;
-      }
+    .input-group {
+      display: flex;
+      gap: 0.5rem;
+      margin-top: 1rem;
+      flex-wrap: wrap;
+    }
+    .modal-input {
+      flex: 1;
+      min-width: 0; /* Allows inputs to shrink below default size */
+      padding: 0.5rem;
+      border-radius: 4px;
+      border: 1px solid var(--input-border);
+      background: var(--input-bg);
+      color: var(--text-color);
+    }
+
+    #saveBmBtn {
+      flex-shrink: 0;
+    }
+
+    @media (max-width: 400px) {
       .modal-input {
-        flex: 1;
-        min-width: 0; /* Allows inputs to shrink below default size */
-        padding: 0.5rem;
-        border-radius: 4px;
-        border: 1px solid var(--input-border);
-        background: var(--input-bg);
-        color: var(--text-color);
+        flex-basis: 100%; /* Stack on very small screens */
       }
+    }
 
-      #saveBmBtn {
-        flex-shrink: 0;
-      }
-
-      @media (max-width: 400px) {
-        .modal-input {
-          flex-basis: 100%; /* Stack on very small screens */
-        }
-      }
-
-      /* Autocomplete suggestions */
-      datalist {
-        background-color: var(--input-bg);
-        color: var(--text-color);
-      }
+    /* Autocomplete suggestions */
+    datalist {
+      background-color: var(--input-bg);
+      color: var(--text-color);
+    }
     </style>
     <script>
-      if (
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      ) {
-        document.documentElement.classList.add("dark-theme");
-      }
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      document.documentElement.classList.add("dark-theme");
+    }
     </script>
   </head>
   <body>
@@ -500,440 +500,438 @@
     </div>
 
     <script>
-      const ws = new WebSocket("ws://" + window.location.host);
-      const ctx = document.getElementById("pingChart").getContext("2d");
+    const ws = new WebSocket("ws://" + window.location.host);
+    const ctx = document.getElementById("pingChart").getContext("2d");
 
-      // Elements
-      const hostInput = document.getElementById("hostInput");
-      const addHostBtn = document.getElementById("addHostBtn");
-      const pauseAllBtn = document.getElementById("pauseAllBtn");
-      const monitorTableBody = document.getElementById(
-        "monitorTableBody",
-      );
-      const settingsBtn = document.getElementById("settingsBtn");
-      const settingsModal = document.getElementById("settingsModal");
-      const closeSettingsBtn = document.getElementById(
-        "closeSettingsBtn",
-      );
-      const savedHostsList = document.getElementById("savedHostsList");
+    // Elements
+    const hostInput = document.getElementById("hostInput");
+    const addHostBtn = document.getElementById("addHostBtn");
+    const pauseAllBtn = document.getElementById("pauseAllBtn");
+    const monitorTableBody = document.getElementById(
+      "monitorTableBody",
+    );
+    const settingsBtn = document.getElementById("settingsBtn");
+    const settingsModal = document.getElementById("settingsModal");
+    const closeSettingsBtn = document.getElementById(
+      "closeSettingsBtn",
+    );
+    const savedHostsList = document.getElementById("savedHostsList");
 
-      // Bookmark Elements
-      const bookmarkList = document.getElementById("bookmarkList");
-      const bmIpInput = document.getElementById("bmIpInput");
-      const bmNameInput = document.getElementById("bmNameInput");
-      const saveBmBtn = document.getElementById("saveBmBtn");
+    // Bookmark Elements
+    const bookmarkList = document.getElementById("bookmarkList");
+    const bmIpInput = document.getElementById("bmIpInput");
+    const bmNameInput = document.getElementById("bmNameInput");
+    const saveBmBtn = document.getElementById("saveBmBtn");
 
-      // Constants
-      const MAX_DATA_POINTS = 60;
-      const COLORS = [
-        "#4BC0C0",
-        "#FF6384",
-        "#36A2EB",
-        "#FF9F40",
-        "#9966FF",
-        "#FFCD56",
-        "#C9CBCF",
-      ];
+    // Constants
+    const MAX_DATA_POINTS = 60;
+    const COLORS = [
+      "#4BC0C0",
+      "#FF6384",
+      "#36A2EB",
+      "#FF9F40",
+      "#9966FF",
+      "#FFCD56",
+      "#C9CBCF",
+    ];
 
-      // State
-      let monitors = new Map(); // host -> { color, data: [], stats: { ... } }
-      let bookmarks = [];
-      let isPaused = false;
-      let colorIndex = 0;
+    // State
+    let monitors = new Map(); // host -> { color, data: [], stats: { ... } }
+    let bookmarks = [];
+    let isPaused = false;
+    let colorIndex = 0;
 
-      // Initialize Bookmarks
-      function renderBookmarks() {
-        bookmarkList.innerHTML = "";
-        savedHostsList.innerHTML = "";
+    // Initialize Bookmarks
+    function renderBookmarks() {
+      bookmarkList.innerHTML = "";
+      savedHostsList.innerHTML = "";
 
-        bookmarks.forEach((bm, index) => {
-          // Modal list
-          const item = document.createElement("div");
-          item.className = "bookmark-item";
-          item.innerHTML = `
-                <div class="bookmark-info">
-                    <span class="bookmark-ip">${bm.ip}</span>
-                    <span class="bookmark-name">${bm.name}</span>
-                </div>
-                <button class="remove-btn" onclick="deleteBookmark(${index})">
-                    <span class="material-symbols-outlined">delete</span>
-                </button>
-            `;
-          bookmarkList.appendChild(item);
-
-          // Datalist option
-          const option = document.createElement("option");
-          option.value = bm.ip;
-          option.label = bm.name; // This helps show the nickname
-          savedHostsList.appendChild(option);
-        });
-      }
-
-      window.deleteBookmark = (index) => {
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "deleteBookmark", index }));
-        }
-      };
-
-      saveBmBtn.addEventListener("click", () => {
-        const ip = bmIpInput.value.trim();
-        const name = bmNameInput.value.trim();
-        if (ip) {
-          if (ws.readyState === WebSocket.OPEN) {
-            ws.send(
-              JSON.stringify({
-                type: "addBookmark",
-                bookmark: { ip, name },
-              }),
-            );
-            bmIpInput.value = "";
-            bmNameInput.value = "";
-          }
-        }
-      });
-
-      // Chart Setup
-      const chart = new Chart(ctx, {
-        type: "line",
-        data: {
-          labels: [],
-          datasets: [],
-        },
-        options: {
-          animation: { duration: 500, easing: "easeOutQuad" },
-          responsive: true,
-          maintainAspectRatio: false,
-          interaction: { intersect: false, mode: "index" },
-          scales: {
-            y: {
-              beginAtZero: false,
-              grace: "5%",
-              grid: { color: "rgba(0,0,0,0.05)" },
-              ticks: { color: "#333" },
-            },
-            x: {
-              grid: { display: false },
-              ticks: { display: false }, // Hide time labels for cleaner look with multiple lines
-            },
-          },
-          plugins: {
-            legend: { display: false }, // We use the table as legend
-            tooltip: {
-              mode: "index",
-              intersect: false,
-            },
-          },
-        },
-      });
-
-      // Monitor Management
-      function addMonitor(host) {
-        if (!host || monitors.has(host)) return;
-
-        const color = COLORS[colorIndex % COLORS.length];
-        colorIndex++;
-
-        const nickname = bookmarks.find((b) => b.ip === host)?.name ||
-          "";
-
-        const monitor = {
-          host,
-          nickname,
-          color,
-          data: [], // Array of {x: time, y: ping}
-          stats: { current: 0, avg: 0, max: 0 },
-        };
-
-        monitors.set(host, monitor);
-
-        // Add Dataset to Chart
-        chart.data.datasets.push({
-          label: nickname ? `${host} (${nickname})` : host,
-          data: [],
-          borderColor: color,
-          backgroundColor: color,
-          borderWidth: 2,
-          pointRadius: 3,
-          tension: 0.2,
-          spanGaps: true,
-        });
-        chart.update();
-
-        // Add Row to Table
-        renderMonitorRow(monitor);
-
-        // Start Backend
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "start", host }));
-        }
-      }
-
-      function removeMonitor(host) {
-        if (!monitors.has(host)) return;
-
-        monitors.delete(host);
-
-        // Remove from Chart
-        const datasetIndex = chart.data.datasets.findIndex((d) =>
-          d.label.startsWith(host) || d.label.includes(host)
-        );
-        if (datasetIndex > -1) {
-          chart.data.datasets.splice(datasetIndex, 1);
-          chart.update();
-        }
-
-        // Remove from Table
-        const row = document.getElementById(
-          `row-${host.replace(/[.:]/g, "-")}`,
-        );
-        if (row) row.remove();
-
-        // Stop Backend
-        if (ws.readyState === WebSocket.OPEN) {
-          ws.send(JSON.stringify({ type: "stop", host }));
-        }
-      }
-
-      function renderMonitorRow(monitor) {
-        const safeId = monitor.host.replace(/[.:]/g, "-");
-        const row = document.createElement("tr");
-        row.id = `row-${safeId}`;
-        row.innerHTML = `
-            <td><span class="color-dot" style="background-color: ${monitor.color}"></span></td>
-            <td>
-                <span class="host-cell">${monitor.host}</span>
-                ${
-          monitor.nickname
-            ? `<span class="host-sub">${monitor.nickname}</span>`
-            : ""
-        }
-            </td>
-            <td id="curr-${safeId}">--</td>
-            <td id="avg-${safeId}">--</td>
-            <td id="max-${safeId}">--</td>
-            <td>
-                <button class="remove-btn" onclick="removeMonitor('${monitor.host}')">
-                    <span class="material-symbols-outlined">close</span>
-                </button>
-            </td>
+      bookmarks.forEach((bm, index) => {
+        // Modal list
+        const item = document.createElement("div");
+        item.className = "bookmark-item";
+        item.innerHTML = `
+              <div class="bookmark-info">
+                  <span class="bookmark-ip">${bm.ip}</span>
+                  <span class="bookmark-name">${bm.name}</span>
+              </div>
+              <button class="remove-btn" onclick="deleteBookmark(${index})">
+                  <span class="material-symbols-outlined">delete</span>
+              </button>
           `;
-        monitorTableBody.appendChild(row);
+        bookmarkList.appendChild(item);
+
+        // Datalist option
+        const option = document.createElement("option");
+        option.value = bm.ip;
+        option.label = bm.name; // This helps show the nickname
+        savedHostsList.appendChild(option);
+      });
+    }
+
+    window.deleteBookmark = (index) => {
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "deleteBookmark", index }));
       }
+    };
 
-      window.removeMonitor = removeMonitor; // Expose for onclick
-
-      // Interactions
-      addHostBtn.addEventListener("click", () => {
-        const host = hostInput.value.trim();
-        if (host) {
-          addMonitor(host);
-          hostInput.value = "";
-        }
-      });
-      hostInput.addEventListener("keypress", (e) => {
-        if (e.key === "Enter") addHostBtn.click();
-      });
-
-      pauseAllBtn.addEventListener("click", () => {
-        isPaused = !isPaused;
-        pauseAllBtn.querySelector("span").textContent = isPaused
-          ? "play_arrow"
-          : "pause";
+    saveBmBtn.addEventListener("click", () => {
+      const ip = bmIpInput.value.trim();
+      const name = bmNameInput.value.trim();
+      if (ip) {
         if (ws.readyState === WebSocket.OPEN) {
-          if (isPaused) {
-            ws.send(JSON.stringify({ type: "pauseAll" }));
-          } else {
-            // Resume all active monitors
-            monitors.forEach((_, host) => {
-              ws.send(JSON.stringify({ type: "start", host }));
-            });
-          }
-        }
-      });
-
-      // Settings Modal
-      settingsBtn.addEventListener(
-        "click",
-        () => settingsModal.classList.add("open"),
-      );
-      closeSettingsBtn.addEventListener(
-        "click",
-        () => settingsModal.classList.remove("open"),
-      );
-      settingsModal.addEventListener("click", (e) => {
-        if (e.target === settingsModal) {
-          settingsModal.classList.remove("open");
-        }
-      });
-
-      // WebSocket
-      ws.onopen = () => {
-        console.log("WS Open");
-        // We wait for the 'monitors' message to populate initial state
-      };
-
-      ws.onmessage = (event) => {
-        if (isPaused) return;
-
-        try {
-          const data = JSON.parse(event.data);
-
-          if (data.type === "bookmarks") {
-            bookmarks = data.bookmarks;
-            renderBookmarks();
-            return;
-          }
-
-          if (data.type === "monitors") {
-            if (data.hosts && data.hosts.length > 0) {
-              data.hosts.forEach((host) => addMonitor(host));
-            } else if (monitors.size === 0) {
-              addMonitor("1.1.1.1");
-            }
-            return;
-          }
-
-          if (data.type === "networkInfo") {
-            document.getElementById("publicIp").textContent =
-              data.publicIp || "Unknown";
-            if (data.interfaces && data.interfaces.length > 0) {
-              const infos = data.interfaces.map((i) =>
-                `${i.address} (${i.name})`
-              ).join(", ");
-              document.getElementById("localIp").textContent = infos;
-            }
-            return;
-          }
-
-          if (data.speed) {
-            document.getElementById("downloadSpeed").textContent =
-              formatSpeed(data.speed.rx);
-            document.getElementById("uploadSpeed").textContent =
-              formatSpeed(data.speed.tx);
-            return;
-          }
-
-          if (data.type === "error") {
-            // Maybe mark the row as error?
-            console.error(data.message);
-            return;
-          }
-
-          if (data.host && data.ping !== undefined) {
-            const monitor = monitors.get(data.host);
-            if (monitor) {
-              const now = new Date();
-              const timeString = now.toLocaleTimeString();
-
-              // Update Data
-              monitor.data.push(data.ping);
-              if (monitor.data.length > MAX_DATA_POINTS) {
-                monitor.data.shift();
-              }
-
-              // Update Chart Dataset
-              const dataset = chart.data.datasets.find((d) =>
-                d.label.startsWith(data.host) ||
-                d.label.includes(data.host)
-              );
-              if (dataset) {
-                dataset.data.push(data.ping);
-                if (dataset.data.length > MAX_DATA_POINTS) {
-                  dataset.data.shift();
-                }
-                // Ensure labels match length (Chart.js needs labels for x-axis)
-                // We can just use a global rolling label set or just push a placeholder
-                if (chart.data.labels.length < dataset.data.length) {
-                  chart.data.labels.push(timeString);
-                }
-                if (chart.data.labels.length > MAX_DATA_POINTS) {
-                  chart.data.labels.shift();
-                }
-              }
-
-              chart.update(); // Efficient update with animation
-
-              // Update Stats
-              const pings = monitor.data;
-              const current = data.ping;
-              const avg = (pings.reduce((a, b) =>
-                a + b, 0) / pings.length).toFixed(1);
-              const max = Math.max(...pings);
-
-              const safeId = data.host.replace(/[.:]/g, "-");
-              const currEl = document.getElementById(`curr-${safeId}`);
-              if (currEl) {
-                currEl.textContent = current + " ms";
-                document.getElementById(`avg-${safeId}`).textContent =
-                  avg + " ms";
-                document.getElementById(`max-${safeId}`).textContent =
-                  max + " ms";
-              }
-            }
-          }
-        } catch (e) {
-          console.error(e);
-        }
-      };
-
-      function formatSpeed(bytesPerSec) {
-        if (!bytesPerSec) return "0 B/s";
-        const units = ["B/s", "kB/s", "MB/s", "GB/s"];
-        let val = bytesPerSec;
-        let unitIndex = 0;
-        while (val >= 1024 && unitIndex < units.length - 1) {
-          val /= 1024;
-          unitIndex++;
-        }
-        return `${val.toFixed(1)} ${units[unitIndex]}`;
-      }
-
-      // Theme Support
-      function updateTheme(isDark) {
-        const textColor = isDark ? "#e0e0e0" : "#333";
-        const gridColor = isDark
-          ? "rgba(255, 255, 255, 0.05)"
-          : "rgba(0, 0, 0, 0.05)";
-
-        if (chart) {
-          chart.options.scales.y.ticks.color = textColor;
-          chart.options.scales.y.grid.color = gridColor;
-          chart.update();
+          ws.send(
+            JSON.stringify({
+              type: "addBookmark",
+              bookmark: { ip, name },
+            }),
+          );
+          bmIpInput.value = "";
+          bmNameInput.value = "";
         }
       }
+    });
 
-      if (window.matchMedia) {
-        window.matchMedia("(prefers-color-scheme: dark)")
-          .addEventListener("change", (e) => {
-            document.documentElement.classList.toggle(
-              "dark-theme",
-              e.matches,
-            );
-            updateTheme(e.matches);
+    // Chart Setup
+    const chart = new Chart(ctx, {
+      type: "line",
+      data: {
+        labels: [],
+        datasets: [],
+      },
+      options: {
+        animation: { duration: 500, easing: "easeOutQuad" },
+        responsive: true,
+        maintainAspectRatio: false,
+        interaction: { intersect: false, mode: "index" },
+        scales: {
+          y: {
+            beginAtZero: false,
+            grace: "5%",
+            grid: { color: "rgba(0,0,0,0.05)" },
+            ticks: { color: "#333" },
+          },
+          x: {
+            grid: { display: false },
+            ticks: { display: false }, // Hide time labels for cleaner look with multiple lines
+          },
+        },
+        plugins: {
+          legend: { display: false }, // We use the table as legend
+          tooltip: {
+            mode: "index",
+            intersect: false,
+          },
+        },
+      },
+    });
+
+    // Monitor Management
+    function addMonitor(host) {
+      if (!host || monitors.has(host)) return;
+
+      const color = COLORS[colorIndex % COLORS.length];
+      colorIndex++;
+
+      const nickname = bookmarks.find((b) => b.ip === host)?.name ||
+        "";
+
+      const monitor = {
+        host,
+        nickname,
+        color,
+        data: [], // Array of {x: time, y: ping}
+        stats: { current: 0, avg: 0, max: 0 },
+      };
+
+      monitors.set(host, monitor);
+
+      // Add Dataset to Chart
+      chart.data.datasets.push({
+        label: nickname ? `${host} (${nickname})` : host,
+        data: [],
+        borderColor: color,
+        backgroundColor: color,
+        borderWidth: 2,
+        pointRadius: 3,
+        tension: 0.2,
+        spanGaps: true,
+      });
+      chart.update();
+
+      // Add Row to Table
+      renderMonitorRow(monitor);
+
+      // Start Backend
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "start", host }));
+      }
+    }
+
+    function removeMonitor(host) {
+      if (!monitors.has(host)) return;
+
+      monitors.delete(host);
+
+      // Remove from Chart
+      const datasetIndex = chart.data.datasets.findIndex((d) =>
+        d.label.startsWith(host) || d.label.includes(host)
+      );
+      if (datasetIndex > -1) {
+        chart.data.datasets.splice(datasetIndex, 1);
+        chart.update();
+      }
+
+      // Remove from Table
+      const row = document.getElementById(
+        `row-${host.replace(/[.:]/g, "-")}`,
+      );
+      if (row) row.remove();
+
+      // Stop Backend
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(JSON.stringify({ type: "stop", host }));
+      }
+    }
+
+    function renderMonitorRow(monitor) {
+      const safeId = monitor.host.replace(/[.:]/g, "-");
+      const row = document.createElement("tr");
+      row.id = `row-${safeId}`;
+      row.innerHTML = `
+          <td><span class="color-dot" style="background-color: ${monitor.color}"></span></td>
+          <td>
+              <span class="host-cell">${monitor.host}</span>
+              ${
+        monitor.nickname ? `<span class="host-sub">${monitor.nickname}</span>` : ""
+      }
+          </td>
+          <td id="curr-${safeId}">--</td>
+          <td id="avg-${safeId}">--</td>
+          <td id="max-${safeId}">--</td>
+          <td>
+              <button class="remove-btn" onclick="removeMonitor('${monitor.host}')">
+                  <span class="material-symbols-outlined">close</span>
+              </button>
+          </td>
+        `;
+      monitorTableBody.appendChild(row);
+    }
+
+    window.removeMonitor = removeMonitor; // Expose for onclick
+
+    // Interactions
+    addHostBtn.addEventListener("click", () => {
+      const host = hostInput.value.trim();
+      if (host) {
+        addMonitor(host);
+        hostInput.value = "";
+      }
+    });
+    hostInput.addEventListener("keypress", (e) => {
+      if (e.key === "Enter") addHostBtn.click();
+    });
+
+    pauseAllBtn.addEventListener("click", () => {
+      isPaused = !isPaused;
+      pauseAllBtn.querySelector("span").textContent = isPaused
+        ? "play_arrow"
+        : "pause";
+      if (ws.readyState === WebSocket.OPEN) {
+        if (isPaused) {
+          ws.send(JSON.stringify({ type: "pauseAll" }));
+        } else {
+          // Resume all active monitors
+          monitors.forEach((_, host) => {
+            ws.send(JSON.stringify({ type: "start", host }));
           });
+        }
       }
-      if (
-        window.matchMedia &&
-        window.matchMedia("(prefers-color-scheme: dark)").matches
-      ) {
-        updateTheme(true);
-      }
+    });
 
-      // Final initialization
-      window.addEventListener("load", () => {
-        // Use a small timeout to ensure bindings are active
-        setTimeout(() => {
-          // @ts-ignore
-          if (typeof show_app === "function") {
-            // @ts-ignore
-            show_app();
-          } else {
-            console.warn(
-              "show_app not found, maybe running in browser?",
-            );
+    // Settings Modal
+    settingsBtn.addEventListener(
+      "click",
+      () => settingsModal.classList.add("open"),
+    );
+    closeSettingsBtn.addEventListener(
+      "click",
+      () => settingsModal.classList.remove("open"),
+    );
+    settingsModal.addEventListener("click", (e) => {
+      if (e.target === settingsModal) {
+        settingsModal.classList.remove("open");
+      }
+    });
+
+    // WebSocket
+    ws.onopen = () => {
+      console.log("WS Open");
+      // We wait for the 'monitors' message to populate initial state
+    };
+
+    ws.onmessage = (event) => {
+      if (isPaused) return;
+
+      try {
+        const data = JSON.parse(event.data);
+
+        if (data.type === "bookmarks") {
+          bookmarks = data.bookmarks;
+          renderBookmarks();
+          return;
+        }
+
+        if (data.type === "monitors") {
+          if (data.hosts && data.hosts.length > 0) {
+            data.hosts.forEach((host) => addMonitor(host));
+          } else if (monitors.size === 0) {
+            addMonitor("1.1.1.1");
           }
-        }, 100);
-      });
+          return;
+        }
+
+        if (data.type === "networkInfo") {
+          document.getElementById("publicIp").textContent = data.publicIp ||
+            "Unknown";
+          if (data.interfaces && data.interfaces.length > 0) {
+            const infos = data.interfaces.map((i) => `${i.address} (${i.name})`)
+              .join(", ");
+            document.getElementById("localIp").textContent = infos;
+          }
+          return;
+        }
+
+        if (data.speed) {
+          document.getElementById("downloadSpeed").textContent = formatSpeed(
+            data.speed.rx,
+          );
+          document.getElementById("uploadSpeed").textContent = formatSpeed(
+            data.speed.tx,
+          );
+          return;
+        }
+
+        if (data.type === "error") {
+          // Maybe mark the row as error?
+          console.error(data.message);
+          return;
+        }
+
+        if (data.host && data.ping !== undefined) {
+          const monitor = monitors.get(data.host);
+          if (monitor) {
+            const now = new Date();
+            const timeString = now.toLocaleTimeString();
+
+            // Update Data
+            monitor.data.push(data.ping);
+            if (monitor.data.length > MAX_DATA_POINTS) {
+              monitor.data.shift();
+            }
+
+            // Update Chart Dataset
+            const dataset = chart.data.datasets.find((d) =>
+              d.label.startsWith(data.host) ||
+              d.label.includes(data.host)
+            );
+            if (dataset) {
+              dataset.data.push(data.ping);
+              if (dataset.data.length > MAX_DATA_POINTS) {
+                dataset.data.shift();
+              }
+              // Ensure labels match length (Chart.js needs labels for x-axis)
+              // We can just use a global rolling label set or just push a placeholder
+              if (chart.data.labels.length < dataset.data.length) {
+                chart.data.labels.push(timeString);
+              }
+              if (chart.data.labels.length > MAX_DATA_POINTS) {
+                chart.data.labels.shift();
+              }
+            }
+
+            chart.update(); // Efficient update with animation
+
+            // Update Stats
+            const pings = monitor.data;
+            const current = data.ping;
+            const avg = (pings.reduce((a, b) => a + b, 0) / pings.length).toFixed(
+              1,
+            );
+            const max = Math.max(...pings);
+
+            const safeId = data.host.replace(/[.:]/g, "-");
+            const currEl = document.getElementById(`curr-${safeId}`);
+            if (currEl) {
+              currEl.textContent = current + " ms";
+              document.getElementById(`avg-${safeId}`).textContent = avg + " ms";
+              document.getElementById(`max-${safeId}`).textContent = max + " ms";
+            }
+          }
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    };
+
+    function formatSpeed(bytesPerSec) {
+      if (!bytesPerSec) return "0 B/s";
+      const units = ["B/s", "kB/s", "MB/s", "GB/s"];
+      let val = bytesPerSec;
+      let unitIndex = 0;
+      while (val >= 1024 && unitIndex < units.length - 1) {
+        val /= 1024;
+        unitIndex++;
+      }
+      return `${val.toFixed(1)} ${units[unitIndex]}`;
+    }
+
+    // Theme Support
+    function updateTheme(isDark) {
+      const textColor = isDark ? "#e0e0e0" : "#333";
+      const gridColor = isDark
+        ? "rgba(255, 255, 255, 0.05)"
+        : "rgba(0, 0, 0, 0.05)";
+
+      if (chart) {
+        chart.options.scales.y.ticks.color = textColor;
+        chart.options.scales.y.grid.color = gridColor;
+        chart.update();
+      }
+    }
+
+    if (window.matchMedia) {
+      window.matchMedia("(prefers-color-scheme: dark)")
+        .addEventListener("change", (e) => {
+          document.documentElement.classList.toggle(
+            "dark-theme",
+            e.matches,
+          );
+          updateTheme(e.matches);
+        });
+    }
+    if (
+      window.matchMedia &&
+      window.matchMedia("(prefers-color-scheme: dark)").matches
+    ) {
+      updateTheme(true);
+    }
+
+    // Final initialization
+    window.addEventListener("load", () => {
+      // Use a small timeout to ensure bindings are active
+      setTimeout(() => {
+        // @ts-ignore
+        if (typeof show_app === "function") {
+          // @ts-ignore
+          show_app();
+        } else {
+          console.warn(
+            "show_app not found, maybe running in browser?",
+          );
+        }
+      }, 100);
+    });
     </script>
   </body>
 </html>

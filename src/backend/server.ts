@@ -3,7 +3,7 @@
 
 interface PingSession {
   process: Deno.ChildProcess;
-  retryTimeout?: number;
+  retryTimeout?: NodeJS.Timeout;
 }
 
 interface Bookmark {
@@ -172,7 +172,7 @@ function stopAllPings() {
   }
 }
 
-let speedInterval: number | undefined;
+let speedInterval: NodeJS.Timeout | undefined;
 let previousRx = 0;
 let previousTx = 0;
 let previousTime = 0;
@@ -250,7 +250,7 @@ function stopSpeedSession() {
 }
 
 let networkWatcher: Deno.ChildProcess | null = null;
-let networkDebounceTimer: number | undefined;
+let networkDebounceTimer: NodeJS.Timeout | undefined;
 
 function sendNetworkInfo(socket: WebSocket) {
   if (socket.readyState !== WebSocket.OPEN) return;
