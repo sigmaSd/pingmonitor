@@ -653,9 +653,24 @@
         borderColor: color,
         backgroundColor: color,
         borderWidth: 2,
-        pointRadius: 3,
         tension: 0.2,
         spanGaps: true,
+        pointRadius: 3,
+        pointBackgroundColor: (ctx) => {
+          return ctx.parsed?.y === 0 ? "#FF5252" : color;
+        },
+        pointBorderColor: (ctx) => {
+          return ctx.parsed?.y === 0 ? "#FF5252" : color;
+        },
+        segment: {
+          borderColor: (ctx) => {
+            const p0 = ctx.p0.parsed?.y;
+            const p1 = ctx.p1.parsed?.y;
+            if (p0 === 0 || p1 === 0) return "#FF5252";
+            const ds = ctx.chart.data.datasets[ctx.datasetIndex];
+            return ds._timedOut ? "#FF5252" : color;
+          },
+        },
       });
       chart.update();
 
@@ -840,32 +855,36 @@
               if (dataset.data.length > MAX_DATA_POINTS) {
                 dataset.data.shift();
               }
-              // Ensure labels match length (Chart.js needs labels for x-axis)
-              // We can just use a global rolling label set or just push a placeholder
               if (chart.data.labels.length < dataset.data.length) {
                 chart.data.labels.push(timeString);
               }
               if (chart.data.labels.length > MAX_DATA_POINTS) {
                 chart.data.labels.shift();
               }
+              dataset._timedOut = !!data.timeout;
             }
 
-            chart.update(); // Efficient update with animation
+            chart.update();
 
             // Update Stats
-            const pings = monitor.data;
-            const current = data.ping;
-            const avg = (pings.reduce((a, b) => a + b, 0) / pings.length).toFixed(
-              1,
-            );
-            const max = Math.max(...pings);
-
             const safeId = data.host.replace(/[.:]/g, "-");
-            const currEl = document.getElementById(`curr-${safeId}`);
-            if (currEl) {
-              currEl.textContent = current + " ms";
-              document.getElementById(`avg-${safeId}`).textContent = avg + " ms";
-              document.getElementById(`max-${safeId}`).textContent = max + " ms";
+            if (data.timeout) {
+              const currEl = document.getElementById(`curr-${safeId}`);
+              if (currEl) currEl.textContent = "Timeout";
+            } else {
+              const pings = monitor.data.filter((v) => v !== 0);
+              const current = data.ping;
+              const avg = pings.length > 0
+                ? (pings.reduce((a, b) => a + b, 0) / pings.length).toFixed(1)
+                : "--";
+              const max = pings.length > 0 ? Math.max(...pings) : "--";
+
+              const currEl = document.getElementById(`curr-${safeId}`);
+              if (currEl) {
+                currEl.textContent = current + " ms";
+                document.getElementById(`avg-${safeId}`).textContent = avg + " ms";
+                document.getElementById(`max-${safeId}`).textContent = max + " ms";
+              }
             }
           }
         }

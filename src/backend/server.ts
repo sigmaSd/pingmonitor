@@ -67,8 +67,12 @@ async function saveMonitors(hosts: string[]) {
 function startPingSession(socket: WebSocket, host: string) {
   stopPing(host);
 
+  const debugTimeouts = Deno.env.get("DEBUG_TIMEOUTS") === "1";
+  let debugCount = 0;
+  let debugBurst = 0;
+
   const cmd = new Deno.Command("ping", {
-    args: [host],
+    args: ["-O", host],
     stdout: "piped",
     stderr: "piped",
     env: {
@@ -89,8 +93,30 @@ function startPingSession(socket: WebSocket, host: string) {
 
         const match = value.match(/time=(\d+(\.\d+)?)/);
         if (match) {
+          if (debugTimeouts) {
+            if (debugBurst > 0) {
+              debugBurst--;
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ host, ping: 0, timeout: true }));
+              }
+              continue;
+            }
+            debugCount++;
+            if (debugCount % 8 === 0) {
+              debugBurst = 3;
+              if (socket.readyState === WebSocket.OPEN) {
+                socket.send(JSON.stringify({ host, ping: 0, timeout: true }));
+              }
+              continue;
+            }
+          }
           if (socket.readyState === WebSocket.OPEN) {
             socket.send(JSON.stringify({ host, ping: parseFloat(match[1]) }));
+          }
+        }
+        if (value.includes("no answer yet")) {
+          if (socket.readyState === WebSocket.OPEN) {
+            socket.send(JSON.stringify({ host, ping: 0, timeout: true }));
           }
         }
       }
