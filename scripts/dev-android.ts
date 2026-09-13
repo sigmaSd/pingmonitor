@@ -13,7 +13,7 @@
 // against the per-app manifest package and miss the dex class).
 const SHELL_ACTIVITY = "dev.denoapk.shell.MainActivity";
 
-const root = new URL("..", import.meta.url).pathname;
+const root = new URL("..", import.meta.url).pathname.replace(/\/$/, "");
 
 async function run(
   cmd: string[],
@@ -148,7 +148,26 @@ if (
 }
 
 console.log(`installing on ${serial} ...`);
-const install = await run([...adbS(["install", "-r", apk])]);
+let install = await run([...adbS(["install", "-r", apk])]);
+if (
+  install.code !== 0 &&
+  (install.stdout + install.stderr).includes(
+    "INSTALL_FAILED_UPDATE_INCOMPATIBLE",
+  )
+) {
+  // Already installed under a different signature -- each machine
+  // generates its own debug keystore, so a release/CI build on the
+  // device can never be updated by a local dev build. Uninstall
+  // (wipes the app's on-device data) and retry once.
+  console.log(
+    "installed copy was signed by a different key, uninstalling first (wipes app data) ...",
+  );
+  const uninstall = await run([...adbS(["uninstall", identifier])]);
+  if (uninstall.code !== 0) {
+    fail(`uninstall failed:\n${uninstall.stderr.trim()}`);
+  }
+  install = await run([...adbS(["install", "-r", apk])]);
+}
 if (install.code !== 0) fail(`install failed:\n${install.stderr.trim()}`);
 console.log(install.stdout.trim().split("\n").at(-1) ?? "installed");
 

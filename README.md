@@ -70,7 +70,7 @@ deno run -A jsr:@sigmasd/denoapk build .   # -> dist/pingmonitor.apk
 For day-to-day development:
 
 ```
-deno task dev            # desktop: runs the GTK app, restarts on src/ changes (web/ is served from disk)
+deno task dev            # desktop: runs the GTK app (web/ is served from disk; restart for src/ changes)
 deno task dev:android    # Android: rebuilds the APK, installs + launches it on a device, streams logcat
 ```
 

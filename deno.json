@@ -1,7 +1,7 @@
 {
   "tasks": {
     "compile": "deno compile --no-check --output pingChart -A --include src/backend/server.ts --include web src/webview/main.ts",
-    "dev": "deno run -A --watch=src/ src/webview/main.ts",
+    "dev": "deno run -A src/webview/main.ts",
     "dev:android": "deno run -A scripts/dev-android.ts",
     "install": {
       "command": "deno -A jsr:@sigmasd/install-app@0.6.1 install pingChart",

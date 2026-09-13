@@ -24,6 +24,16 @@ if (import.meta.main) {
     window.setTitle("Ping Monitor");
     window.setDefaultSize(1000, 600);
 
+    // Workaround: exit the process directly when the window is closed.
+    // app.quit() lets the close proceed into native webview teardown, which
+    // blocks the main thread for seconds (Deno's SIGINT handler starves, so
+    // Ctrl-C does nothing meanwhile). Exiting here skips that teardown
+    // entirely -- the OS reclaims the window. Returns never, which satisfies
+    // the close-request callback signature.
+    window.onCloseRequest(() => {
+      Deno.exit(0);
+    });
+
     const webview = new Webview(true, undefined, window.ptr);
     webview.bind("show_app", () => {
       window.setVisible(true);
