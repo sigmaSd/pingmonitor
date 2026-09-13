@@ -9,6 +9,7 @@
     "jsr:@denosaurs/plug@1": "1.0.6",
     "jsr:@libs/xml@7.0.2": "7.0.2",
     "jsr:@sigma/deno-compat@0.23.0": "0.23.0",
+    "jsr:@sigmasd/denoapk@*": "0.5.0",
     "jsr:@sigmasd/gtk@0.65": "0.65.0",
     "jsr:@std/assert@0.221": "0.221.0",
     "jsr:@std/bytes@^1.0.5": "1.0.6",
@@ -22,7 +23,6 @@
     "jsr:@std/path@0.221": "0.221.0",
     "jsr:@std/path@1": "1.1.4",
     "jsr:@std/path@^1.1.4": "1.1.4",
-    "jsr:@std/streams@1": "1.1.2",
     "jsr:@webview/webview@0.9": "0.9.0",
     "jsr:@webview/webview@0.9.0": "0.9.0",
     "npm:@types/node@*": "22.12.0"
@@ -73,6 +73,9 @@
     },
     "@sigma/deno-compat@0.23.0": {
       "integrity": "3e116e19096601c3e078311864b653a207592195ae6a3f634a45931eb1a21481"
+    },
+    "@sigmasd/denoapk@0.5.0": {
+      "integrity": "3903b678252ee15f3f36622d530098ee27a990041d32b2115141ceef578c0bdd"
     },
     "@sigmasd/gtk@0.65.0": {
       "integrity": "b8a2eb49b07f9b79c00a4c80ad7afc704c306e69775fd4cf3f916ba38344e4b6",
@@ -130,9 +133,6 @@
         "jsr:@std/internal"
       ]
     },
-    "@std/streams@1.1.2": {
-      "integrity": "0249bf9b78a999f57032ca4d8e7ccaa57579090242640b35ddc948fbb745d3af"
-    },
     "@webview/webview@0.9.0": {
       "integrity": "a7c4d787aafa43258ff287f71a16679d5ca3d9b65e5d232c60c3985f9ab3e0ce",
       "dependencies": [
@@ -153,8 +153,8 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@sigmasd/denoapk@*",
       "jsr:@sigmasd/gtk@0.65",
-      "jsr:@std/streams@1",
       "jsr:@webview/webview@0.9"
     ]
   }

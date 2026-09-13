@@ -808,7 +808,7 @@
       renderMonitorRow(monitor);
 
       // Start pinging via denoapk.execStream -- works identically on
-      // desktop (server.ts's /__denoapk/exec-stream/ route) and Android
+      // desktop (server.ts via handleDenoapkRequest) and Android
       // (ExecStreamBridge), unlike the old ws.send({type:"start",host})
       // which only ever worked on desktop.
       startPingStream(monitor);

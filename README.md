@@ -49,9 +49,10 @@ one codebase:
   than left showing as permanently stuck "Loading…" text.
 
 `web/index.html` is the one file that runs unchanged on both platforms;
-`src/backend/server.ts` and denoapk's Android shell each implement the same
-`/__denoapk/exec`/`/__denoapk/exec-stream` routes so `denoapk.execStream(...)`
-means the same thing wherever it runs.
+`src/backend/server.ts` delegates all `/__denoapk/*` routes (`runtime.js`,
+`proxy`, `exec`, `exec-stream`) to denoapk's `handleDenoapkRequest` helper (with
+`exec` enabled), so `denoapk.execStream(...)` means the same thing wherever it
+runs. The Android shell implements those same routes natively.
 
 ## Build from source
 
@@ -66,13 +67,23 @@ bootstraps the rest of the Android SDK on first run):
 deno run -A jsr:@sigmasd/denoapk build .   # -> dist/pingmonitor.apk
 ```
 
+For day-to-day development:
+
+```
+deno task dev            # desktop: runs the GTK app, restarts on src/ changes (web/ is served from disk)
+deno task dev:android    # Android: rebuilds the APK, installs + launches it on a device, streams logcat
+```
+
+`dev:android` picks the connected device (`--device <serial>` or
+`$ANDROID_SERIAL` to choose when several are attached); pass `--no-logs` to skip
+the log stream.
+
 ## Project layout
 
 ```
 src/backend/  Deno.serve() worker: serves web/, ping subprocess, WebSocket
 src/webview/  GTK4 + webview desktop entry point
 web/          the UI -- the one thing that runs on both platforms
-host/         denoapk's runtime.js, copied in so the desktop server can serve it too
 assets/       app icon source
 distro/       Flathub packaging metadata
 ```

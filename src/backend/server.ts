@@ -1,7 +1,7 @@
 #!/usr/bin/env -S deno run --allow-all
 /// <reference lib="deno.worker" />
 
-import { mergeReadableStreams } from "@std/streams/merge-readable-streams";
+import { handleDenoapkRequest } from "@sigmasd/denoapk/handler";
 
 interface Bookmark {
   ip: string;
@@ -277,118 +277,6 @@ function stopNetworkWatcher() {
   }
 }
 
-// Desktop-side counterparts of denoapk's exec/execStream capabilities (see
-// ExecClient.java / ExecStreamBridge.java in denoapk, and its README's
-// "Running native commands" section for the wire format both ends agree
-// on). No allowlist here either -- matches denoapk's own trust model, not
-// an independent decision made for this app.
-
-function parseExecRequest(
-  encoded: string,
-): { cmd: string; args: string[] } | { error: string } {
-  let parsed: { cmd?: unknown; args?: unknown };
-  try {
-    parsed = JSON.parse(encoded);
-  } catch (e) {
-    return { error: "bad exec request: " + e };
-  }
-  // A bare name (e.g. "ping") is resolved via $PATH by Deno.Command itself,
-  // same as an absolute path -- matches denoapk's Android side (verified to
-  // do the same $PATH resolution) and the original pre-port code, which
-  // already relied on this (new Deno.Command("ping", ...), no path at all).
-  const cmd = typeof parsed.cmd === "string" ? parsed.cmd : null;
-  if (!cmd) {
-    return { error: "cmd must not be empty" };
-  }
-  const args = Array.isArray(parsed.args)
-    ? parsed.args.filter((a): a is string => typeof a === "string")
-    : [];
-  return { cmd, args };
-}
-
-async function handleExec(encoded: string): Promise<Response> {
-  const parsed = parseExecRequest(encoded);
-  if ("error" in parsed) {
-    return new Response(parsed.error, { status: 400 });
-  }
-
-  let process: Deno.ChildProcess;
-  try {
-    process = new Deno.Command(parsed.cmd, {
-      args: parsed.args,
-      stdout: "piped",
-      stderr: "piped",
-    }).spawn();
-  } catch (e) {
-    return new Response("exec unavailable: " + e, { status: 500 });
-  }
-
-  let timedOut = false;
-  // 10s default, matching ExecClient.java's default; no per-request
-  // timeoutMs override on this side yet -- add if a caller ever needs one.
-  const killTimer = setTimeout(() => {
-    timedOut = true;
-    try {
-      process.kill();
-    } catch {
-      // already exited
-    }
-  }, 10_000);
-
-  const [status, stdout, stderr] = await Promise.all([
-    process.status,
-    new Response(process.stdout).text(),
-    new Response(process.stderr).text(),
-  ]);
-  clearTimeout(killTimer);
-
-  return Response.json({
-    ok: status.success && !timedOut,
-    exitCode: timedOut ? null : status.code,
-    stdout,
-    stderr,
-    timedOut,
-  });
-}
-
-function handleExecStream(req: Request, encoded: string): Response {
-  const parsed = parseExecRequest(encoded);
-  if ("error" in parsed) {
-    return new Response(parsed.error, { status: 400 });
-  }
-
-  let process: Deno.ChildProcess;
-  try {
-    process = new Deno.Command(parsed.cmd, {
-      args: parsed.args,
-      stdout: "piped",
-      stderr: "piped",
-    }).spawn();
-  } catch (e) {
-    return new Response("exec unavailable: " + e, { status: 500 });
-  }
-
-  // The client disconnecting or cancelling the fetch fires this -- matches
-  // ExecStreamBridge.java's cancel() killing the process, so a caller
-  // stopping consumption never leaks a running subprocess on either
-  // platform.
-  req.signal.addEventListener("abort", () => {
-    try {
-      process.kill();
-    } catch {
-      // already exited
-    }
-  });
-
-  // Merged, matching Android's redirectErrorStream(true) -- the shell only
-  // has one InputStream to hand the WebView, so both ends agree on one
-  // merged stream rather than exposing stdout/stderr separately here.
-  const merged = mergeReadableStreams(process.stdout, process.stderr);
-  return new Response(merged, {
-    headers: { "content-type": "text/plain; charset=utf-8" },
-  });
-}
-
 if (import.meta.main) {
   Deno.serve({
     port: 0,
@@ -472,30 +360,13 @@ if (import.meta.main) {
       return response;
     }
 
-    // Desktop-side counterparts of denoapk's native exec routes, so
-    // web/index.html's denoapk.exec()/denoapk.execStream() calls work
-    // identically whether they're running here or in the Android shell —
-    // see denoapk's README ("Running native commands") for the wire
-    // format both ends agree on.
-    if (path.startsWith("/__denoapk/exec-stream/")) {
-      return handleExecStream(
-        req,
-        decodeURIComponent(path.slice("/__denoapk/exec-stream/".length)),
-      );
-    }
-    if (path.startsWith("/__denoapk/exec/")) {
-      return await handleExec(
-        decodeURIComponent(path.slice("/__denoapk/exec/".length)),
-      );
-    }
-
-    if (path === "/__denoapk/runtime.js") {
-      const js = await fetch(import.meta.resolve("../../host/runtime.js"))
-        .then((res) => res.text());
-      return new Response(js, {
-        headers: { "content-type": "text/javascript; charset=utf-8" },
-      });
-    }
+    // All __denoapk/* routes (runtime.js, proxy, exec, exec-stream) are
+    // handled by denoapk's helper so desktop matches the Android shell.
+    // exec is opt-in with no allowlist -- same trust model as the shell.
+    const denoapkRes = await handleDenoapkRequest(req, {
+      exec: { enabled: true },
+    });
+    if (denoapkRes) return denoapkRes;
 
     if (path === "/" || path === "/index.html") {
       const html = await fetch(import.meta.resolve("../../web/index.html"))
